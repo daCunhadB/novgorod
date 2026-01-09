@@ -260,8 +260,8 @@ Links
 }
 
 #links-1 a {
-  width: 7rem;
-  height: 7rem;
+  width: 4rem;
+  height: 4rem;
   margin: 0 auto 
   border: 2px solid var(--stroke-color);
   display: flex;
