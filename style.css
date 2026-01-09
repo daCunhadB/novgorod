@@ -190,7 +190,7 @@ Temas
   height: 1.8rem;
   border: 0;
 
-  background: var(--surface-color);
+  background: silver;
 
   outline: 8px solid silver;
   outline-style: solid;
@@ -288,10 +288,10 @@ Links
 }
 
 .light #links-1 a:hover {
-  background: var(--golden);
   border: 2px solid var(--highlight-color);
   -webkit-text-fill-color: var(--highlight-color);
   animation: 0.5s forwards;
+  background: var(--golden);
 }
 
 #links-2 {
@@ -328,8 +328,8 @@ Links
 
 #links-2 a:hover {
   background: var(--surface-color-hover);
-  border: 1.5px solid #acffac;
-  -webkit-text-fill-color: #acffac;
+  border: 1.5px solid silver;
+  -webkit-text-fill-color: silver;
   animation: 0.5s forwards;
   background: var(--lightbrown);
 }
