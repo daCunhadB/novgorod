@@ -348,10 +348,6 @@ Links
  * Redes Sociais
  */
 #social {
-  -webkit-animation: reveal 1ms ease-in-out both;
-  animation: reveal 1ms ease-in-out both;
-  animation-timeline: view();
-  animation-range-start: 10% cover 25%;
   display: -webkit-flex;
   justify-content: center;
   padding: 0,5rem 0;
