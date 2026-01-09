@@ -281,16 +281,16 @@ Links
 }
 
 #links-1 a:hover {
-  background: #acffac;
-  border: 1.5px solid #acffac;
-  -webkit-text-fill-color: #acffac;
+  background: var(--highlight-color);
+  border: 1.5px solid --highlight-color;
+  -webkit-text-fill-color: var(--highlight-color);
   animation: 0.5s forwards;
   background: var(--lightbrown);
 }
 
 .light #links-1 a:hover {
   background: var(--golden);
-  border: 1.5px solid var(--text-color);
+  border: 1.5px solid var(--highlight-color);
   -webkit-text-fill-color: var(--highlight-color);
   animation: 0.5s forwards;
   background: var(--surface-color-hover);
