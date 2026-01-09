@@ -260,8 +260,8 @@ Links
 }
 
 #links-1 a {
-  width: 6rem;
-  height: 6rem;
+  width: 4rem;
+  height: 4rem;
   margin: 0 auto 
   border: 2px solid var(--stroke-color);
   display: flex;
@@ -269,7 +269,7 @@ Links
   justify-content: center;
   padding:50%;
   background: var(--surface-color);
-  margin: 0 auto 6rem;
+  margin: 0 auto 4rem;
   overflow: hidden;
   border-radius: 50%;
   backdrop-filter: blur(0.25rem);
