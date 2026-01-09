@@ -354,8 +354,8 @@ Links
   animation-range-start: 10% cover 25%;
   display: -webkit-flex;
   justify-content: center;
-  padding: 1rem 0;
-  font-size: 1rem;
+  padding: 0,5rem 0;
+  font-size: 3rem;
 }
 
 #social a {
@@ -363,13 +363,12 @@ Links
   align-items: center;
   justify-content: center;
   padding: 1rem;
-
   transition: var(--bg-degrees) 0.5s;
   border-radius: 60%;
 }
 
 #social a:hover {
-  background: #acffac;
+  background: var(--highlight-color)
 }
 
 .light #social a:hover {
