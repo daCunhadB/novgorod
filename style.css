@@ -193,7 +193,7 @@ Temas
   background: var(--surface-color);
 
   outline: 8px solid silver;
-  outline-style: dotted;
+  outline-style: solid;
   outline-offset: 3px;
   border-radius: 50%;
   position: absolute;
@@ -235,7 +235,7 @@ Temas
   background: silver;
 
   outline: 4px solid var(--highlight-color);
-  outline-style: solid;
+  outline-style: dotted;
   outline-offset: 2.5px;
 
   border-radius: 50%;
