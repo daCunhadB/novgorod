@@ -252,7 +252,7 @@ Links
   display: inline-flex;
   flex-direction: fill;
   gap: 1rem;
-  padding: 3rem 0%;
+  padding: 2rem 0%;
   font-family: var(--body-font);
   text-align: center;
   font-size: smaller;
