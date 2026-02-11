@@ -171,7 +171,7 @@ Temas
   z-index: 1;
   transform: translateY(-50%);
 
-  transform: rotate(45deg);
+  transform: rotate(360deg);
 
   transition: outline 0.5s;
   animation: slide-back 0.5s;
@@ -264,7 +264,8 @@ Links
   height: 6rem;
   margin: 0 auto 
   border: 2px solid var(--stroke-color);
-  display: flex;
+  display: inline-flex;
+  flex-direction: fill;
   align-items: center;
   justify-content: center;
   padding:50%;
