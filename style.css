@@ -1,6 +1,6 @@
-/*
- Reset de body
- */
+/* =====================================================================
+   BLOCO: RESET
+===================================================================== */
 * {
   margin: 0;
   padding: 0;
@@ -9,85 +9,101 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/*
- Aparência
- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* =====================================================================
+   BLOCO: TOKENS DE DESIGN
+   Paleta herdada do brasão e da bandeira (carmesim, ouro, prata),
+   tipografia imperial (Cinzel / EB Garamond) e escala de camadas.
+===================================================================== */
 :root {
+  /* cor — tema escuro (padrão) */
+  --void: #0b0705;
+  --ink: #150f0a;
+  --crimson: #5c0f18;
+  --crimson-strong: #8a1622;
+  --crimson-vivid: #b3182a;
+  --gold: #c8a24c;
+  --gold-soft: #e8d6a0;
+  --parchment: #ece1c8;
+  --silver: #b7bcc4;
+
   --darkbrown: #382e2e;
   --lightbrown: #503b1f;
   --bg-degrees: 45deg;
-  --switchbutton: url(./assets/brasaoimperiobr.png);
 
-  --text-color: #c0c0c0;
-  --body-font: "Inter", sans-serif;
+  --text-color: var(--parchment);
+  --heading-color: var(--gold-soft);
+
+  --font-display: "Cinzel", "Cinzel Decorative", serif;
+  --font-body: "EB Garamond", "Inter", serif;
+  --font-ui: "Inter", sans-serif;
+  --body-font: var(--font-body);
+
   --body-bg: no-repeat
-    linear-gradient(
-      var(--bg-degrees),
-      var(--darkbrown) 0,
-      24%,
-      var(--lightbrown) 100%
-    )
+    linear-gradient(var(--bg-degrees), var(--darkbrown) 0, 24%, var(--lightbrown) 100%)
     center/cover;
 
-  --stroke-color: silver;
-  --surface-color: #ffffff1a;
+  --stroke-color: var(--gold);
+  --surface-color: #ffffff14;
   --surface-color-hover: #ffffff0d;
   --highlight-color: #ffd700;
+
+  --ease-imperial: cubic-bezier(0.22, 1, 0.36, 1);
+  --reveal-duration: 0.9s;
 }
 
-.light {
-  --body-bg: no-repeat
-    linear-gradient(var(--bg-degrees), var(--rose) 0, 12%, var(--golden) 100%)
-    center/cover;
 
-  --rose: #c6b5a0;
-  --golden: #9a6413;
-  --bg-degrees: 45deg;
-  --switchbutton: url(./assets/brasaoimperiobrzerodegrade.png);
-
-  --text-color: silver;
-
-  --stroke-color: #ffd700;
-  --surface-color: #0000000d;
-  --surface-color-hover: #00000005;
-  --highlight-color: #ffd700;
+/* =====================================================================
+   BLOCO: FUNDO ANIMADO — BANDEIRA FLAMEJANTE
+   Canvas fixo cobrindo toda a viewport, com véu de contraste por
+   cima. O JS aplica filtros (saturação/brilho) conforme a rolagem,
+   fazendo a bandeira "despertar" da memória para a honra plena.
+===================================================================== */
+#flag-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+  background: var(--body-bg);
+  filter: grayscale(65%) brightness(0.55) saturate(0.8);
+  transition: filter 0.4s linear;
 }
 
-.zoom {
-  background-color: none;
-  transition: ease-in-out; /* Animation */
-  transition-duration: 1s;
-  animation: ease-in-out;
-  animation-timeline: var(--body-font);
-  animation-range: initial 50% cover 100%;
-  animation-range-start: 50%;
-  animation-range-end: 100%;
-  transform: scale(1);
-
-  -webkit-animation: ease-in-out;
-  -webkit-animation-timeline: var(--body-font);
-  -webkit-animation-range: initial 50 cover 100%;
-  -webkit-animation-range-start: 50%;
-  -webkit-animation-range-end: 100%;
+.bg-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(11, 7, 5, 0.15) 0%, rgba(11, 7, 5, 0.75) 65%, rgba(11, 7, 5, 0.92) 100%);
+  transition: background 0.4s linear;
 }
 
-.zoom:hover {
-  background-color: none;
-  -webkit-animation: reveal 1ms ease-out reverse;
-  animation: reveal 1ms ease-out reverse;
-  animation-timeline: view();
-  transition: transform 13s; /* Animation */
-  animation-range: entry 50% cover 100%;
-  transform: scale(1);
+
+/* Barra de progresso de rolagem, ligada à jornada pela história */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--crimson-vivid), var(--gold));
+  z-index: 50;
+  transition: width 0.05s linear;
+  box-shadow: 0 0 8px rgba(200, 162, 76, 0.6);
 }
 
-/*
- Corpo da Página
- */
+/* =====================================================================
+   BLOCO: CORPO DA PÁGINA
+===================================================================== */
 html,
 body {
   min-height: 100vh;
-  background: var(--body-bg);
+  background: transparent;
 }
 
 body * {
@@ -98,10 +114,9 @@ ul {
   list-style: none;
 }
 
-/*
- Perfil
- */
 .container {
+  position: relative;
+  z-index: 2;
   width: 80%;
   max-width: 70rem;
   margin: 0 auto;
@@ -109,9 +124,64 @@ ul {
   font-family: var(--body-font);
   text-align: center;
   font-size: smaller;
-  font-weight: 1000;
+  font-weight: 500;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  color: var(--heading-color);
+  letter-spacing: 0.03em;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  text-transform: uppercase;
+}
+
+h3 {
+  font-weight: 600;
+}
+
+/* =====================================================================
+   BLOCO: REVELAÇÃO POR ROLAGEM
+   Utilitário aplicado via JS (IntersectionObserver) para animar a
+   entrada de cada bloco e texto conforme aparece na tela.
+===================================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(2.25rem);
+  transition: opacity var(--reveal-duration) var(--ease-imperial),
+    transform var(--reveal-duration) var(--ease-imperial);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-child {
+  opacity: 0;
+  transform: translateY(0.9rem);
+  transition: opacity 0.7s var(--ease-imperial), transform 0.7s var(--ease-imperial);
+}
+
+.is-visible .reveal-child {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.is-visible .reveal-child:nth-of-type(1) { transition-delay: 0.05s; }
+.is-visible .reveal-child:nth-of-type(2) { transition-delay: 0.15s; }
+.is-visible .reveal-child:nth-of-type(3) { transition-delay: 0.25s; }
+.is-visible .reveal-child:nth-of-type(4) { transition-delay: 0.35s; }
+.is-visible .reveal-child:nth-of-type(5) { transition-delay: 0.45s; }
+
+/* =====================================================================
+   BLOCO: PERFIL / AVATAR
+===================================================================== */
 #profile {
   margin-bottom: 1.5rem;
 }
@@ -122,138 +192,39 @@ ul {
   margin: 0 auto 1.5rem;
   overflow: hidden;
   border-radius: 50%;
-  border: 2px solid var(--stroke-color); 
+  border: 2px solid var(--stroke-color);
+  box-shadow: 0 0 0 6px rgba(200, 162, 76, 0.08), 0 12px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.6s var(--ease-imperial), box-shadow 0.6s var(--ease-imperial);
+}
+
+.avatar:hover {
+  transform: scale(1.05) rotate(1deg);
+  box-shadow: 0 0 0 8px rgba(200, 162, 76, 0.16), 0 16px 34px rgba(0, 0, 0, 0.55);
 }
 
 .avatar img {
   width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
-/*
-Temas
-*/
-
-#switch {
-  content: "";
-  width: 51px;
-  position: relative;
-  margin: 0 auto;
-  background: var(--golden);
-  -webkit-backdrop-filter: blur(0.25rem);
-  backdrop-filter: blur(0.25rem);
-  border-radius: 18%;
+/* .zoom — leve respiração da imagem ao longo da rolagem da seção */
+.zoom {
+  transition: transform 0.6s ease-out;
 }
 
-#switch::after {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 12px;
-  background: var(--golden);
-  border: 1px solid var(--stroke-color);
-  -webkit-backdrop-filter: blur(0.25rem);
-  backdrop-filter: blur(0.25rem);
-  border-radius: 18%;
-}
 
-#switch button {
-  width: 1.8rem;
-  height: 1.8rem;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  background: silver;
 
-  position: absolute;
-  bottom: -50%;
-  left: 0;
-  z-index: 1;
-  transform: translateY(-50%);
-
-  transform: rotate(360deg);
-
-  transition: outline 0.5s;
-  animation: slide-back 0.5s;
-}
-
-.brasaoimperiobr img #switch button {
-  width: 100%;
-  position: absolute;
-  object-position: initial bottom;
-  object-fit: cover fill;
-  image-rendering: optimizeQuality;
-}
-
-#switch button:hover {
-  width: 1.8rem;
-  height: 1.8rem;
-  border: 0;
-
-  background: silver;
-
-  outline: 8px solid silver;
-  outline-style: solid;
-  outline-offset: 3px;
-  border-radius: 50%;
-  position: absolute;
-  bottom: -50%;
-  left: 0;
-  z-index: 1;
-}
-
-.light #switch button {
-  width: 1.8rem;
-  height: 1.8rem;
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  background: silver;
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 1;
-  transform: translateY(-50%);
-  transition: outline 0.5s;
-  animation: slide-back 0.5s;
-  animation: slide-in 0.5s forwards;
-}
-
-.brasaoimperiobr img .light #switch button {
-  width: 100%;
-  position: absolute;
-  object-position: initial bottom;
-  object-fit: cover fill;
-  image-rendering: optimizeQuality;
-}
-
-.light #switch button:hover {
-  width: 1.8rem;
-  height: 1.8rem;
-  border: 0;
-
-  background: silver;
-
-  outline: 4px solid var(--highlight-color);
-  outline-style: dotted;
-  outline-offset: 2.5px;
-
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 1;
-}
-
-/*
-Links
-*/
+/* =====================================================================
+   BLOCO: LINKS EXTERNOS (avatares circulares)
+===================================================================== */
 #links-1 {
   display: inline-flex;
-  flex-direction: fill;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
-  padding: 2rem 0%;
-  font-family: var(--body-font);
+  padding: 2rem 0;
+  font-family: var(--font-ui);
   text-align: center;
   font-size: smaller;
   font-weight: 400;
@@ -262,13 +233,10 @@ Links
 #links-1 a {
   width: 6rem;
   height: 6rem;
-  margin: 0 auto 
   border: 2px solid var(--stroke-color);
   display: inline-flex;
-  flex-direction: fill;
   align-items: center;
   justify-content: center;
-  padding:50%;
   background: var(--surface-color);
   margin: 0 auto 1rem;
   overflow: hidden;
@@ -276,151 +244,320 @@ Links
   backdrop-filter: blur(0.25rem);
   -webkit-backdrop-filter: blur(0.25rem);
   text-decoration: none;
-  font-size: smaller;
-  font-weight: 400;
-  transition: var(--bg-degrees) 1.4s;
+  transition: transform 0.5s var(--ease-imperial), border-color 0.4s ease,
+    background 0.6s ease, box-shadow 0.5s ease;
+}
+
+#links-1 a img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 #links-1 a:hover {
   border: 2px solid var(--highlight-color);
-  -webkit-text-fill-color: var(--highlight-color);
-  animation: 0.5s forwards;
+  animation: pulse-gold 1.2s ease-in-out infinite;
   background: var(--lightbrown);
+  transform: translateY(-6px) scale(1.06);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.4);
 }
 
-.light #links-1 a:hover {
-  border: 2px solid var(--highlight-color);
-  -webkit-text-fill-color: var(--highlight-color);
-  animation: 0.5s forwards;
-  background: var(--golden);
+
+
+/* =====================================================================
+   BLOCO: TEXTOS / PARÁGRAFOS
+===================================================================== */
+.texto-justificado {
+  text-align: justify;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  max-width: 52rem;
+  margin: 0 auto;
 }
 
+/* =====================================================================
+   BLOCO: MULTIMÍDIA
+===================================================================== */
 #links-2 {
-  -webkit-animation: reveal 1ms ease-in-out both;
-  animation: reveal 1ms ease-in-out both;
-  animation-timeline: view();
-  animation-range: cover cover 200px;
-  animation-range-end: 500px;
-  display: -webkit-flex;
+  display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
   padding: 1rem;
-  font-family: var(--body-font);
+  font-family: var(--font-ui);
   text-align: center;
   font-size: large;
-  font-weight: 1000;
+  font-weight: 600;
 }
 
-#links-2 a {
-  display: -webkit-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 1rem;
-  background: var(--surface-color);
+.video-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.video-frame {
   border: 1px solid var(--stroke-color);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--surface-color);
   backdrop-filter: blur(0.25rem);
   -webkit-backdrop-filter: blur(0.25rem);
-  text-decoration: none;
-  font-size: large;
-  font-weight: 400;
-  transition: background 1.4s;
+  transition: transform 0.6s var(--ease-imperial), box-shadow 0.6s var(--ease-imperial);
 }
 
-#links-2 a:hover {
-  background: var(--surface-color-hover);
-  border: 1.5px solid silver;
-  -webkit-text-fill-color: silver;
-  animation: 0.5s forwards;
-  background: var(--lightbrown);
+.video-frame:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
 }
 
-.light #links-2 a:hover {
-  background: var(--golden);
-  border: 1.5px solid var(--text-color);
-  -webkit-text-fill-color: var(--highlight-color);
-  animation: 0.5s forwards;
+.video-frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
 }
 
-/*
- * Redes Sociais
- */
-#social {
-  display: -webkit-flex;
+.video-caption {
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* =====================================================================
+   BLOCO: GALERIA HERÁLDICA (caixa expansiva)
+===================================================================== */
+.gallery {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  border: 1px solid var(--stroke-color);
+  border-radius: 1rem;
+  background: var(--surface-color);
+  backdrop-filter: blur(0.35rem);
+  -webkit-backdrop-filter: blur(0.35rem);
+  transition: background 0.6s ease, border-color 0.6s ease;
+}
+
+.gallery-featured {
+  display: flex;
   justify-content: center;
-  padding: 0,5rem 0;
-  font-size: 6rem;
+}
+
+.gallery-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gallery-item__frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--stroke-color);
+  background: #00000030;
+}
+
+.gallery-item--featured .gallery-item__frame {
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+  transition: transform 0.6s var(--ease-imperial);
+}
+
+.gallery-item--featured:hover .gallery-item__frame {
+  transform: scale(1.05) rotate(-1deg);
+}
+
+.gallery-item__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0000001a;
+  transition: transform 0.6s var(--ease-imperial);
+}
+
+.gallery-item:hover .gallery-item__frame img {
+  transform: scale(1.08);
+}
+
+.gallery-item figcaption {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-0.5rem);
+  transition: max-height 0.7s var(--ease-imperial), opacity 0.5s ease,
+    transform 0.6s var(--ease-imperial), margin-top 0.7s var(--ease-imperial);
+}
+
+.gallery-grid.is-open {
+  max-height: 60rem;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gallery-grid .gallery-item {
+  opacity: 0;
+  transform: translateY(1rem) scale(0.96);
+  transition: opacity 0.5s var(--ease-imperial), transform 0.5s var(--ease-imperial);
+}
+
+.gallery-grid.is-open .gallery-item {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.gallery-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1.75rem auto 0;
+  padding: 0.65rem 1.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--stroke-color);
+  background: transparent;
+  color: var(--heading-color);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.4s ease, color 0.4s ease, transform 0.3s ease,
+    box-shadow 0.4s ease;
+}
+
+.gallery-toggle:hover {
+  background: var(--gold);
+  color: var(--ink);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+
+.gallery-toggle__icon {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.4s var(--ease-imperial);
+}
+
+.gallery-toggle[aria-expanded="true"] .gallery-toggle__icon {
+  transform: rotate(225deg);
+}
+
+/* =====================================================================
+   BLOCO: REDES SOCIAIS / RODAPÉ
+===================================================================== */
+#social {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+  font-size: 3.5rem;
 }
 
 #social a {
-  display: -webkit-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  transition: var(--bg-degrees) 0.5s;
+  transition: transform 0.5s var(--ease-imperial), background 0.4s ease;
   border-radius: 60%;
 }
 
 #social a:hover {
-  background: var(--highlight-color)
-}
-
-.light #social a:hover {
   background: var(--highlight-color);
+  transform: translateY(-4px) scale(1.1) rotate(-4deg);
 }
 
-/*
- * Animação
- */
 
-.c-indicator {
-  -webkit-animation: scroll 1ms ease-in-out;
-  animation: scroll 1ms ease-in-out;
-  animation-timeline: scroll(root);
-  background-color: var(--lightbrown);
-  transform-origin: left;
-  height: var(--scroll-height);
-  inset: 0;
-  position: fixed;
+
+.Rodapé {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  opacity: 0.75;
+  transition: opacity 0.4s ease;
+}
+
+.Rodapé:hover {
+  opacity: 1;
+}
+
+/* =====================================================================
+   BLOCO: ANIMAÇÕES
+===================================================================== */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 215, 0, 0); }
 }
 
 @keyframes slide-in {
-  from {
-    left: 0;
-  }
-  to {
-    left: 100%;
-    transform: translate(-90%, -50%);
-  }
+  from { left: 0; }
+  to { left: 100%; transform: translate(-90%, -50%); }
 }
 
 @keyframes slide-back {
-  from {
-    left: 50%;
-  }
-  to {
-    left: 0;
-  }
-}
-
-@keyframes scroll {
-  from {
-    scale: 0 1;
-  }
-
-  to {
-    scale: 1 1;
-  }
+  from { left: 50%; }
+  to { left: 0; }
 }
 
 @keyframes reveal {
-  from {
-    opacity: 0;
-    clip-path: inset(45% 20% 45% 20%);
+  from { opacity: 0; clip-path: inset(45% 20% 45% 20%); }
+  to { opacity: 1; clip-path: inset(0% 0% 0% 0%); }
+}
+
+/* =====================================================================
+   BLOCO: RESPONSIVIDADE
+===================================================================== */
+@media (max-width: 640px) {
+  .container {
+    width: 92%;
   }
 
-  to {
+  #links-1 a {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .gallery-item--featured .gallery-item__frame {
+    width: 9rem;
+    height: 9rem;
+  }
+}
+
+/* =====================================================================
+   BLOCO: ACESSIBILIDADE — MOVIMENTO REDUZIDO
+===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .reveal,
+  .reveal-child {
     opacity: 1;
-    clip-path: inset(0% 0% 0% 0%);
+    transform: none;
   }
 }
