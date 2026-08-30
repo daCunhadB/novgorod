@@ -215,54 +215,6 @@ h3 {
 
 
 
-/* =====================================================================
-   BLOCO: LINKS EXTERNOS (avatares circulares)
-===================================================================== */
-#links-1 {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2rem 0;
-  font-family: var(--font-ui);
-  text-align: center;
-  font-size: smaller;
-  font-weight: 400;
-}
-
-#links-1 a {
-  width: 6rem;
-  height: 6rem;
-  border: 2px solid var(--stroke-color);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-color);
-  margin: 0 auto 1rem;
-  overflow: hidden;
-  border-radius: 50%;
-  backdrop-filter: blur(0.25rem);
-  -webkit-backdrop-filter: blur(0.25rem);
-  text-decoration: none;
-  transition: transform 0.5s var(--ease-imperial), border-color 0.4s ease,
-    background 0.6s ease, box-shadow 0.5s ease;
-}
-
-#links-1 a img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-#links-1 a:hover {
-  border: 2px solid var(--highlight-color);
-  animation: pulse-gold 1.2s ease-in-out infinite;
-  background: var(--lightbrown);
-  transform: translateY(-6px) scale(1.06);
-  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.4);
-}
-
-
 
 /* =====================================================================
    BLOCO: TEXTOS / PARÁGRAFOS
@@ -277,59 +229,12 @@ h3 {
 }
 
 /* =====================================================================
-   BLOCO: MULTIMÍDIA
-===================================================================== */
-#links-2 {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  padding: 1rem;
-  font-family: var(--font-ui);
-  text-align: center;
-  font-size: large;
-  font-weight: 600;
-}
-
-.video-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.video-frame {
-  border: 1px solid var(--stroke-color);
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: var(--surface-color);
-  backdrop-filter: blur(0.25rem);
-  -webkit-backdrop-filter: blur(0.25rem);
-  transition: transform 0.6s var(--ease-imperial), box-shadow 0.6s var(--ease-imperial);
-}
-
-.video-frame:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
-}
-
-.video-frame iframe {
-  display: block;
-  width: 100%;
-  border: 0;
-}
-
-.video-caption {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
-  opacity: 0.85;
-}
-
-/* =====================================================================
    BLOCO: GALERIA HERÁLDICA (caixa expansiva)
 ===================================================================== */
 .gallery {
   max-width: 56rem;
   margin: 0 auto;
+  overflow: auto;
   padding: 1.5rem 1rem 2rem;
   border: 1px solid var(--stroke-color);
   border-radius: 1rem;
@@ -461,6 +366,105 @@ h3 {
 .gallery-toggle[aria-expanded="true"] .gallery-toggle__icon {
   transform: rotate(225deg);
 }
+
+/* =====================================================================
+   BLOCO: MULTIMÍDIA
+===================================================================== */
+#links-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+  font-family: var(--font-ui);
+  text-align: center;
+  font-size: large;
+  font-weight: 600;
+}
+
+.video-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.video-frame {
+  border: 1px solid var(--stroke-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--surface-color);
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
+  transition: transform 0.6s var(--ease-imperial), box-shadow 0.6s var(--ease-imperial);
+}
+
+.video-frame:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
+}
+
+.video-frame iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.video-caption {
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+
+/* =====================================================================
+   BLOCO: LINKS EXTERNOS (avatares circulares)
+===================================================================== */
+#links-1 {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 0;
+  font-family: var(--font-ui);
+  text-align: center;
+  font-size: smaller;
+  font-weight: 400;
+}
+
+#links-1 a {
+  width: 6rem;
+  height: 6rem;
+  border: 2px solid var(--stroke-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border-radius: 50%;
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
+  text-decoration: none;
+  transition: transform 0.5s var(--ease-imperial), border-color 0.4s ease,
+    background 0.6s ease, box-shadow 0.5s ease;
+}
+
+#links-1 a img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#links-1 a:hover {
+  border: 2px solid var(--highlight-color);
+  animation: pulse-gold 1.2s ease-in-out infinite;
+  background: var(--lightbrown);
+  transform: translateY(-6px) scale(1.06);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.4);
+}
+
+
+
 
 /* =====================================================================
    BLOCO: REDES SOCIAIS / RODAPÉ

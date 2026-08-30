@@ -52,11 +52,10 @@ function setupScrollReveal() {
    derivado automaticamente do nome do arquivo.
 ===================================================================== */
 const GALLERY_IMAGES = [
-  "bandeira.png",
-  "brasao-grandes-armas.png",
-  "brasao-mozer.png",
+  "bandeira-da-casa.png",
+  "bandeira-da-corte.png",
   "brasao-pequenas-armas.png",
-  "poitiers.png",
+  "brasao-grandes-armas.png",
 ];
 
 // Correções de acentuação para nomes de arquivo sem diacríticos.
@@ -120,8 +119,8 @@ function buildGallery() {
 }
 
 /* =====================================================================
-   BLOCO: FUNDO ANIMADO — BANDEIRA FLAMEJANTE
-   Desenha o arquivo "bandeira.png" em ondulação contínua, como um
+   BLOCO: FUNDO ANIMADO — bandeira-da-corte FLAMEJANTE
+   Desenha o arquivo "bandeira-da-corte.png" em ondulação contínua, como um
    pano ao vento / flama. A rolagem da página controla:
      - a amplitude e a velocidade da ondulação (mais viva ao avançar);
      - o filtro visual do canvas (de memória esmaecida a honra plena).
@@ -136,7 +135,7 @@ function setupFlagBackground() {
   ).matches;
 
   const flagImage = new Image();
-  flagImage.src = "./assets/bandeira.png";
+  flagImage.src = "./assets/bandeira-da-corte.png";
 
   let offscreen = document.createElement("canvas");
   let offscreenCtx = offscreen.getContext("2d");
@@ -152,7 +151,7 @@ function setupFlagBackground() {
     drawCoverImage();
   }
 
-  // Desenha a bandeira em "cover" numa tela auxiliar (evita recalcular
+  // Desenha a bandeira-da-corte em "cover" numa tela auxiliar (evita recalcular
   // o recorte a cada quadro da animação).
   function drawCoverImage() {
     if (!flagImage.complete || flagImage.naturalWidth === 0) return;

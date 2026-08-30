@@ -8,12 +8,12 @@
 
     <meta property="og:title" content="Smolensk" />
     <meta property="og:description" content="Casa Principesca de Novgorod" />
-    <meta property="og:image" content="./assets/bandeira.png" />
+    <meta property="og:image" content="./assets/bandeira-da-corte.png" />
     <meta property="og:url" content="https://valukassmolensk.github.io/novgorod/" />
 
     <title>Casa Principesca de Novgorod e Ducal da Carantânia</title>
 
-    <link rel="shortcut icon" type="image/png" href="./assets/bandeira.png" />
+    <link rel="shortcut icon" type="image/png" href="./assets/bandeira-da-corte.png" />
 
     <!-- =====================================================
          BLOCO: TIPOGRAFIA
@@ -133,6 +133,38 @@
         <br /><br /><br /><br />
 
         <!-- =====================================================
+             BLOCO: GALERIA HERÁLDICA (caixa expansiva)
+             Mostra inicialmente apenas o "card" (selo da Casa).
+             O botão "Ver mais" expande a grade com os demais
+             brasões, bandeira e escudo, cada um com o título
+             derivado do nome do próprio arquivo de imagem.
+             A lista completa é montada dinamicamente pelo
+             scripts.js a partir de um índice de imagens.
+        ====================================================== -->
+        <h3 class="reveal">Galeria Heráldica</h3>
+        <div id="gallery" class="gallery reveal">
+          <div class="gallery-featured">
+            <figure class="gallery-item gallery-item--featured" data-gallery-featured>
+              <div class="gallery-item__frame">
+                <img src="./assets/card.png" alt="Card" />
+              </div>
+              <figcaption>HERÁLDICA</figcaption>
+            </figure>
+          </div>
+
+          <div class="gallery-grid" id="gallery-grid" hidden></div>
+
+          <button id="gallery-toggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="gallery-grid">
+            <span class="gallery-toggle__label">Ver mais</span>
+            <span class="gallery-toggle__icon" aria-hidden="true"></span>
+          </button>
+        </div>
+      </main>
+
+      <br /><br /><br />
+
+
+        <!-- =====================================================
              BLOCO: MULTIMÍDIA
              Vídeos institucionais incorporados do YouTube.
         ====================================================== -->
@@ -173,37 +205,6 @@
         </ul>
 
         <br /><br /><br />
-
-        <!-- =====================================================
-             BLOCO: GALERIA HERÁLDICA (caixa expansiva)
-             Mostra inicialmente apenas o "card" (selo da Casa).
-             O botão "Ver mais" expande a grade com os demais
-             brasões, bandeira e escudo, cada um com o título
-             derivado do nome do próprio arquivo de imagem.
-             A lista completa é montada dinamicamente pelo
-             scripts.js a partir de um índice de imagens.
-        ====================================================== -->
-        <h3 class="reveal">Galeria Heráldica</h3>
-        <div id="gallery" class="gallery reveal">
-          <div class="gallery-featured">
-            <figure class="gallery-item gallery-item--featured" data-gallery-featured>
-              <div class="gallery-item__frame">
-                <img src="./assets/card.png" alt="Card" />
-              </div>
-              <figcaption>HERÁLDICA</figcaption>
-            </figure>
-          </div>
-
-          <div class="gallery-grid" id="gallery-grid" hidden></div>
-
-          <button id="gallery-toggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="gallery-grid">
-            <span class="gallery-toggle__label">Ver mais</span>
-            <span class="gallery-toggle__icon" aria-hidden="true"></span>
-          </button>
-        </div>
-      </main>
-
-      <br /><br /><br />
 
       
       <!-- =====================================================
