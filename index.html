@@ -1,256 +1,453 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
   <head>
-    <meta name="robots" content="noindex,nofollow" />
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#382e2e" />
+    <meta
+      name="description"
+      content="Casa Principesca de Novgorod e Ducal da Carantânia — instituição memorial dedicada à preservação e transmissão da herança eslava."
+    />
 
-    <meta property="og:title" content="Smolensk" />
-    <meta property="og:description" content="Casa Principesca de Novgorod" />
-    <meta property="og:image" content="./assets/bandeira-da-corte.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Casa Principesca de Novgorod" />
+    <meta property="og:description" content="Casa Principesca de Novgorod e Ducal da Carantânia" />
+    <meta property="og:image" content="./assets/card.png" />
     <meta property="og:url" content="https://valukassmolensk.github.io/novgorod/" />
+
+    <link rel="icon" type="image/png" href="./assets/card.png" />
+    <link rel="shortcut icon" type="image/png" href="./assets/card.png" />
+    <link rel="canonical" href="https://valukassmolensk.github.io/novgorod/" />
 
     <title>Casa Principesca de Novgorod e Ducal da Carantânia</title>
 
-    <link rel="shortcut icon" type="image/png" href="./assets/bandeira-da-corte.png" />
-
-    <!-- =====================================================
-         BLOCO: TIPOGRAFIA
-         Cinzel (display / títulos imperiais) + EB Garamond
-         (corpo de texto, tom de crônica antiga) + Inter (UI).
-    ====================================================== -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cinzel+Decorative:wght@700;900&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./style.css" />
+    <noscript>
+      <style>
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
   </head>
 
   <body>
-    <!-- =====================================================
-         BLOCO: FUNDO ANIMADO — BANDEIRA FLAMEJANTE
-         Canvas fixo em tela cheia que desenha a bandeira em
-         ondulação contínua (efeito de pano ao vento / flama).
-         A intensidade, saturação e velocidade da ondulação
-         respondem à rolagem da página: começa esmaecida (a
-         memória adormecida) e ganha cor e vigor conforme o
-         visitante avança pela história (a honra que desperta).
-         Um véu (.bg-veil) garante contraste para leitura.
-    ====================================================== -->
-    <canvas id="flag-canvas" aria-hidden="true"></canvas>
-    <div class="bg-veil" aria-hidden="true"></div>
+    <!-- Cena de fundo: bandeira animada + véu de profundidade + raios de luz + textura -->
+    <div class="scene" aria-hidden="true">
+      <div class="scene__flag"></div>
+      <div class="scene__vignette"></div>
+      <div class="scene__rays"></div>
+      <div class="scene__grain"></div>
+    </div>
 
-    <!-- =====================================================
-         BLOCO: BARRA DE PROGRESSO DE ROLAGEM
-    ====================================================== -->
-    <div class="scroll-progress" aria-hidden="true"></div>
+    <!-- Filtro SVG usado para dar à bandeira um leve ondular de tecido -->
+    <svg class="sr-only-svg" aria-hidden="true" focusable="false">
+      <filter id="cloth-wave" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.008 0.014"
+          numOctaves="2"
+          seed="7"
+          result="noise"
+        >
+          <animate
+            attributeName="baseFrequency"
+            dur="26s"
+            values="0.008 0.014;0.012 0.009;0.008 0.014"
+            repeatCount="indefinite"
+          />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
+
+    <div class="progress-banner" id="progressBanner" aria-hidden="true"></div>
 
     <div class="container">
-      <!-- =====================================================
-           BLOCO: CABEÇALHO / PERFIL
-           Identidade principal: emblema, título, subtítulo e
-           período histórico da Casa.
-      ====================================================== -->
-      <header>
-        <div id="profile" class="reveal">
-          <div class="avatar zoom">
-            <img src="./assets/card.png" alt="Selo da Casa Principesca de Novgorod" />
+      <header class="hero">
+        <div id="profile">
+          <div class="avatar">
+            <img
+              id="avatarImg"
+              src="./assets/card.png"
+              alt="Selo da Casa Principesca de Novgorod"
+              width="140"
+              height="140"
+            />
           </div>
-          <h1 class="reveal-child">Casa Principesca de Novgorod</h1>
-          <h3 class="reveal-child">Ducal da Carantânia</h3>
-          <br />
-          <h6 class="reveal-child">Período da Restauração: 862-1136</h6>
-          <h6 class="reveal-child">(período principesco de Novgorod)</h6>
-          <h3 class="reveal-child">🇪🇺</h3>
+          <h1>Casa Principesca de Novgorod</h1>
+          <p class="subtitle">Ducal da Carantânia</p>
+          <div class="dates">
+            <p>Período da Restauração: 862–1136</p>
+            <p>(período principesco de Novgorod)</p>
+          </div>
+          <p class="flag-emoji" aria-hidden="true">🇪🇺</p>
         </div>
 
-
+        <div class="theme-toggle-wrap">
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+            role="switch"
+            aria-checked="false"
+            aria-label="Alternar entre tema escuro e claro"
+          >
+            <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M20.4 14.9c-1.6.9-3.4 1.3-5.3.9-2.7-.5-4.9-2.4-5.8-4.9-.6-1.7-.6-3.5 0-5.1.3-.8-.5-1.6-1.3-1.2C4.4 6.3 2.5 9.9 3.1 13.7c.6 4 3.9 7.2 7.9 7.8 4.3.6 8.2-1.7 9.9-5.4.4-.8-.4-1.6-1.2-1.2z"
+              />
+            </svg>
+            <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4.4" fill="currentColor" />
+              <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <line x1="12" y1="1.6" x2="12" y2="4" />
+                <line x1="12" y1="20" x2="12" y2="22.4" />
+                <line x1="1.6" y1="12" x2="4" y2="12" />
+                <line x1="20" y1="12" x2="22.4" y2="12" />
+                <line x1="4.5" y1="4.5" x2="6.2" y2="6.2" />
+                <line x1="17.8" y1="17.8" x2="19.5" y2="19.5" />
+                <line x1="4.5" y1="19.5" x2="6.2" y2="17.8" />
+                <line x1="17.8" y1="6.2" x2="19.5" y2="4.5" />
+              </g>
+            </svg>
+            <span class="toggle-knob"></span>
+          </button>
+          <span class="toggle-label">Tema</span>
+        </div>
       </header>
 
-      <br />
-
       <main>
+        <!-- ==================================================================
+             BLOG
+             Cada publicação é uma caixa flexível (.blog-post) com imagem,
+             texto e ações de acesso/compartilhamento, agrupada dentro do
+             contêiner flexível principal (.blog). Duplique um <article> para
+             cada nova publicação e substitua imagem, título, texto e links.
+             ================================================================== -->
+        <section class="section" id="blog" aria-labelledby="blog-heading">
+          <h2 id="blog-heading" class="section-title">Blog</h2>
 
-
-        <!-- =====================================================
-             BLOCO: SOBRE / LEGADO HISTÓRICO
-             Texto institucional em cinco parágrafos, revelado
-             progressivamente durante a rolagem.
-        ====================================================== -->
-        <h1 class="reveal">Saiba mais!</h1>
-        <h3 class="reveal">Nosso Legado:</h3>
-        <br />
-
-        <p class="texto-justificado reveal">
-          A Casa Principesca de Novgorod encontra suas raízes no período compreendido entre os
-          séculos IX e XII, quando Novgorod se afirmou como um dos mais importantes centros
-          culturais, comerciais e institucionais do mundo eslavo oriental. No seu período
-          principesco, a Casa de Novgorod distinguiu-se por uma forma singular de autoridade,
-          fundada menos na imposição do poder e mais na mediação, no pacto e na responsabilidade
-          perante a comunidade. Essa tradição produziu uma cultura política marcada pela
-          sobriedade, pela centralidade da palavra empenhada e pelo profundo respeito à memória e
-          à ordem simbólica.
-        </p>
-        <br />
-        <p class="texto-justificado reveal">
-          A interrupção do regime principesco em 1136 não representou a extinção da Casa, mas a
-          suspensão de sua função política direta. O legado novgorodiano permaneceu vivo na
-          memória histórica, nos registros escritos, nas práticas culturais e na identidade eslava
-          setentrional, conservando-se como referência de uma forma elevada e contida de
-          autoridade. A restauração contemporânea da Casa de Novgorod insere-se, portanto, em uma
-          perspectiva cultural, tradicional e preservacionista, voltada à guarda e à transmissão
-          desse legado, sem reivindicações de soberania estatal ou poder político.
-        </p>
-        <br />
-        <p class="texto-justificado reveal">
-          De modo complementar, o título Ducal da Carantânia remonta a uma das mais antigas
-          formações políticas eslavas da Europa Central. A Carantânia destacou-se, desde cedo, por
-          suas estruturas próprias de legitimidade, profundamente enraizadas na tradição, no
-          direito consuetudinário e na participação ritual da comunidade. O ducado carantaniano
-          representa uma expressão primitiva e autêntica da organização eslava, anterior às
-          influências imperiais posteriores, e constitui um elo fundamental entre os povos eslavos
-          alpinos, balcânicos e orientais.
-        </p>
-        <br />
-        <p class="texto-justificado reveal">
-          A convergência simbólica entre Novgorod e Carantânia não se dá por dominação ou
-          hierarquia, mas por afinidade civilizacional. Ambas expressam modelos eslavos antigos de
-          autoridade limitada, reconhecimento comunitário, respeito à tradição e centralidade da
-          cultura como elemento de coesão. Nesse sentido, a Casa Principesca de Novgorod e a Casa
-          Ducal da Carantânia se apresentam hoje como instituições memoriais irmãs, comprometidas
-          com a preservação da herança eslava em suas múltiplas expressões regionais.
-        </p>
-        <br />
-        <p class="texto-justificado reveal">
-          Esta apresentação é feita em espírito de respeito, amizade e reconhecimento mútuo entre
-          tradições nobiliárquicas eslavas, conscientes de que a verdadeira nobreza se manifesta
-          não na busca de poder, mas na fidelidade à história, à cultura e à honra herdada daqueles
-          que nos precederam.
-        </p>
-        <br /><br /><br /><br />
-
-        <!-- =====================================================
-             BLOCO: GALERIA HERÁLDICA (caixa expansiva)
-             Mostra inicialmente apenas o "card" (selo da Casa).
-             O botão "Ver mais" expande a grade com os demais
-             brasões, bandeira e escudo, cada um com o título
-             derivado do nome do próprio arquivo de imagem.
-             A lista completa é montada dinamicamente pelo
-             scripts.js a partir de um índice de imagens.
-        ====================================================== -->
-        <h3 class="reveal">Galeria Heráldica</h3>
-        <div id="gallery" class="gallery reveal">
-          <div class="gallery-featured">
-            <figure class="gallery-item gallery-item--featured" data-gallery-featured>
-              <div class="gallery-item__frame">
-                <img src="./assets/card.png" alt="Card" />
+          <div class="blog" id="blogGrid">
+            <!-- Publicação de exemplo 1 -->
+            <article
+              class="blog-post reveal"
+              data-share-title="Restauração do arquivo heráldico da Casa"
+              data-share-url="https://valukassmolensk.github.io/novgorod/#blog0001"
+            >
+              <div class="blog-post__media">
+                <img
+                  src="./assets/brasao-grandes-armas.png"
+                  alt="Grandes Armas da Casa de Novgorod"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
-              <figcaption>HERÁLDICA</figcaption>
-            </figure>
+              <div class="blog-post__body">
+                <h3>Restauração do arquivo heráldico da Casa</h3>
+                <p>
+                  Um resumo dos trabalhos de catalogação e conservação dos brasões e documentos
+                  históricos ligados à Casa de Novgorod. Substitua este texto pelo conteúdo real
+                  da publicação.
+                </p>
+                <div class="blog-post__actions">
+                  <a href="#" class="blog-post__link">Publicação</a>
+                  <button class="share-btn" type="button" aria-label="Compartilhar publicação">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="2.6" />
+                        <circle cx="6" cy="12" r="2.6" />
+                        <circle cx="18" cy="19" r="2.6" />
+                        <line x1="8.3" y1="10.6" x2="15.7" y2="6.4" />
+                        <line x1="8.3" y1="13.4" x2="15.7" y2="17.6" />
+                      </g>
+                    </svg>
+                    <span>Compartilhar</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Publicação de exemplo 2 -->
+            <article
+              class="blog-post reveal"
+              data-share-title="Acordo de amizade com a Casa Real Mozer"
+              data-share-url="https://valukassmolensk.github.io/novgorod/#blog0002"
+            >
+              <div class="blog-post__media">
+                <img
+                  src="./assets/brasao-mozer.png"
+                  alt="Brasão da Casa Real Mozer"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <div class="blog-post__body">
+                <h3>Acordo de amizade com a Casa Real Mozer</h3>
+                <p>
+                  Registro do laço de amizade e cooperação cultural firmado entre as duas casas.
+                  Substitua este texto pelo conteúdo real da publicação.
+                </p>
+                <div class="blog-post__actions">
+                  <a href="#" class="blog-post__link">Publicação</a>
+                  <button class="share-btn" type="button" aria-label="Compartilhar publicação">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="2.6" />
+                        <circle cx="6" cy="12" r="2.6" />
+                        <circle cx="18" cy="19" r="2.6" />
+                        <line x1="8.3" y1="10.6" x2="15.7" y2="6.4" />
+                        <line x1="8.3" y1="13.4" x2="15.7" y2="17.6" />
+                      </g>
+                    </svg>
+                    <span>Compartilhar</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Publicação de exemplo 3 -->
+            <article
+              class="blog-post reveal"
+              data-share-title="Símbolos e memória: ecos heráldicos eslavos"
+              data-share-url="https://valukassmolensk.github.io/novgorod/#blog0003"
+            >
+              <div class="blog-post__media">
+                <img
+                  src="./assets/poitiers.png"
+                  alt="Brasão histórico com leão rampante"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <div class="blog-post__body">
+                <h3>Símbolos e memória: ecos heráldicos eslavos</h3>
+                <p>
+                  Uma reflexão sobre como figuras heráldicas atravessam fronteiras e séculos,
+                  unindo tradições distintas. Substitua este texto pelo conteúdo real da
+                  publicação.
+                </p>
+                <div class="blog-post__actions">
+                  <a href="#" class="blog-post__link">Publicação</a>
+                  <button class="share-btn" type="button" aria-label="Compartilhar publicação">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="2.6" />
+                        <circle cx="6" cy="12" r="2.6" />
+                        <circle cx="18" cy="19" r="2.6" />
+                        <line x1="8.3" y1="10.6" x2="15.7" y2="6.4" />
+                        <line x1="8.3" y1="13.4" x2="15.7" y2="17.6" />
+                      </g>
+                    </svg>
+                    <span>Compartilhar</span>
+                  </button>
+                </div>
+              </div>
+            </article>
           </div>
+        </section>
 
-          <div class="gallery-grid" id="gallery-grid" hidden></div>
+        <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
 
-          <button id="gallery-toggle" class="gallery-toggle" type="button" aria-expanded="false" aria-controls="gallery-grid">
-            <span class="gallery-toggle__label">Ver mais</span>
-            <span class="gallery-toggle__icon" aria-hidden="true"></span>
-          </button>
-        </div>
+        <!-- ================================================================
+             LINKS EXTERNOS
+             ================================================================ -->
+        <section class="section" id="links" aria-labelledby="links-heading">
+          <h2 id="links-heading" class="section-title">Links Externos</h2>
+
+          <ul class="link-row" id="links-1">
+            <li>
+              <a
+                href="https://www.instagram.com/armice.novgorod"
+                class="icon-link"
+                aria-label="Instagram da Casa de Novgorod"
+                target="_blank"
+                rel="noopener"
+              >
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g fill="none" stroke="currentColor" stroke-width="1.7">
+                <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2" />
+                <circle cx="12" cy="12" r="4.4" />
+                <circle cx="17.15" cy="6.85" r="1" fill="currentColor" stroke="none" />
+              </g>
+            </svg>
+              </a>
+            </li>
+
+            <li>
+              <a
+                href="https://casarealmozer.wixsite.com/casarealmozer"
+                class="icon-link"
+                aria-label="Site da Casa Real Mozer"
+                target="_blank"
+                rel="noopener"
+              >
+                <img src="./assets/brasao-mozer.png" alt="Brasão da Casa Real Mozer" loading="lazy" decoding="async" />
+              </a>
+            </li>
+
+            <li>
+              <a
+                href="https://api.whatsapp.com/send?phone=5534996338010&text=Ol%C3%A1%2C%20tudo%20bem%3F"
+                class="icon-link"
+                aria-label="Conversar pelo WhatsApp"
+                target="_blank"
+                rel="noopener"
+              >
+                <img src="./assets/whatsapp.png" alt="WhatsApp" loading="lazy" decoding="async" />
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
+
+        <!-- ================================================================
+             SAIBA MAIS / LEGADO
+             ================================================================ -->
+        <section class="section reveal" id="legado" aria-labelledby="legado-heading">
+          <h2 id="legado-heading" class="section-title">Saiba mais!</h2>
+          <h3 class="section-subtitle">Nosso Legado</h3>
+
+          <div class="legado-content">
+            <img
+              class="legado-emblem"
+              src="./assets/brasao-grandes-armas.png"
+              alt="Grandes Armas da Casa Principesca de Novgorod"
+              loading="lazy"
+              decoding="async"
+            />
+
+            <div class="legado-text">
+              <p class="texto-justificado">
+                A Casa Principesca de Novgorod encontra suas raízes no período compreendido entre
+                os séculos IX e XII, quando Novgorod se afirmou como um dos mais importantes
+                centros culturais, comerciais e institucionais do mundo eslavo oriental. No seu
+                período principesco, a Casa de Novgorod distinguiu-se por uma forma singular de
+                autoridade, fundada menos na imposição do poder e mais na mediação, no pacto e na
+                responsabilidade perante a comunidade. Essa tradição produziu uma cultura política
+                marcada pela sobriedade, pela centralidade da palavra empenhada e pelo profundo
+                respeito à memória e à ordem simbólica.
+              </p>
+              <p class="texto-justificado">
+                A interrupção do regime principesco em 1136 não representou a extinção da Casa,
+                mas a suspensão de sua função política direta. O legado novgorodiano permaneceu
+                vivo na memória histórica, nos registros escritos, nas práticas culturais e na
+                identidade eslava setentrional, conservando-se como referência de uma forma
+                elevada e contida de autoridade. A restauração contemporânea da Casa de Novgorod
+                insere-se, portanto, em uma perspectiva cultural, tradicional e preservacionista,
+                voltada à guarda e à transmissão desse legado, sem reivindicações de soberania
+                estatal ou poder político.
+              </p>
+              <p class="texto-justificado">
+                De modo complementar, o título Ducal da Carantânia remonta a uma das mais antigas
+                formações políticas eslavas da Europa Central. A Carantânia destacou-se, desde
+                cedo, por suas estruturas próprias de legitimidade, profundamente enraizadas na
+                tradição, no direito consuetudinário e na participação ritual da comunidade. O
+                ducado carantaniano representa uma expressão primitiva e autêntica da organização
+                eslava, anterior às influências imperiais posteriores, e constitui um elo
+                fundamental entre os povos eslavos alpinos, balcânicos e orientais.
+              </p>
+              <p class="texto-justificado">
+                A convergência simbólica entre Novgorod e Carantânia não se dá por dominação ou
+                hierarquia, mas por afinidade civilizacional. Ambas expressam modelos eslavos
+                antigos de autoridade limitada, reconhecimento comunitário, respeito à tradição e
+                centralidade da cultura como elemento de coesão. Nesse sentido, a Casa Principesca
+                de Novgorod e a Casa Ducal da Carantânia se apresentam hoje como instituições
+                memoriais irmãs, comprometidas com a preservação da herança eslava em suas
+                múltiplas expressões regionais.
+              </p>
+              <p class="texto-justificado">
+                Esta apresentação é feita em espírito de respeito, amizade e reconhecimento mútuo
+                entre tradições nobiliárquicas eslavas, conscientes de que a verdadeira nobreza se
+                manifesta não na busca de poder, mas na fidelidade à história, à cultura e à honra
+                herdada daqueles que nos precederam.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
+
+        <!-- ================================================================
+             MULTIMÍDIA
+             ================================================================ -->
+        <section class="section" id="multimidia" aria-labelledby="multimidia-heading">
+          <h2 id="multimidia-heading" class="section-title">Multimídia</h2>
+
+          <div class="video-grid">
+            <div class="video-card reveal">
+              <div class="video-wrapper">
+                <iframe
+                  src="https://www.youtube.com/embed/jMUIbFiByIk?si=ZyTqmmpXWGbIeNqF"
+                  title="Amirassy TV - Valucast"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <p class="video-caption">Amirassy TV — Valucast</p>
+            </div>
+
+            <div class="video-card reveal">
+              <div class="video-wrapper">
+                <iframe
+                  src="https://www.youtube.com/embed/KUqB6jCbbdM?si=FsNLvg5tL_R75kDx"
+                  title="Instituto Nana Kofi Adom I - Cultura Popular e Alta Cultura"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <p class="video-caption">Instituto Nana Kofi Adom I — Cultura Popular e Alta Cultura</p>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <br /><br /><br />
+      <footer>
+        <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
 
-
-        <!-- =====================================================
-             BLOCO: MULTIMÍDIA
-             Vídeos institucionais incorporados do YouTube.
-        ====================================================== -->
-        <h3 class="reveal">Multimídia</h3>
-
-        <ul id="links-2" class="reveal">
-          <li class="video-item">
-            <div class="video-frame">
-              <iframe
-                width="100%"
-                height="320"
-                src="https://www.youtube.com/embed/jMUIbFiByIk?si=ZyTqmmpXWGbIeNqF"
-                title="Amirassy TV - Valucast"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-              ></iframe>
-            </div>
-            <p class="video-caption">Amirassy TV - Valucast</p>
-          </li>
-
-          <li class="video-item">
-            <div class="video-frame">
-              <iframe
-                width="100%"
-                height="320"
-                src="https://www.youtube.com/embed/KUqB6jCbbdM?si=FsNLvg5tL_R75kDx"
-                title="Instituto Nana Kofi Adom I - Cultura Popular e Alta Cultura"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-              ></iframe>
-            </div>
-            <p class="video-caption">Instituto Nana Kofi Adom I - Cultura Popular e Alta Cultura</p>
-          </li>
-        </ul>
-
-        <br /><br /><br />
-
-      
-      <!-- =====================================================
-           BLOCO: RODAPÉ
-      ====================================================== -->
-      <footer class="reveal">
-                <!-- =====================================================
-             BLOCO: LINKS EXTERNOS
-             Atalhos para redes sociais e contato.
-        ====================================================== -->
-        <h3 class="reveal">Links Externos</h3>
-        <ul id="links-1" class="reveal">
-
-          <li>
-            <a href="https://www.instagram.com/armice.novgorod" aria-label="Instagram">
-              <img src="./assets/card.png" alt="Instagram" height="99" />
-            </a>
-          </li>
-
-          <li>
-            <a href="https://casarealmozer.wixsite.com/casarealmozer" aria-label="Casa Real Mozer">
-              <img src="./assets/brasao-mozer.png" alt="Casa Real Mozer" height="89" />
-            </a>
-          </li>
-
+        <h2 class="section-title">Instagram</h2>
+        <ul class="social" id="social">
           <li>
             <a
-              href="https://api.whatsapp.com/send?phone=5534996338010&text=Olá,%20tudo%20bem?"
-              aria-label="WhatsApp"
+              href="https://instagram.com/armice.novgorod"
+              aria-label="Instagram da Casa de Novgorod"
+              target="_blank"
+              rel="noopener"
             >
-              <img src="./assets/whatsapp.png" alt="WhatsApp" height="103" />
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <g fill="none" stroke="currentColor" stroke-width="1.7">
+                <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2" />
+                <circle cx="12" cy="12" r="4.4" />
+                <circle cx="17.15" cy="6.85" r="1" fill="currentColor" stroke="none" />
+              </g>
+            </svg>
             </a>
           </li>
         </ul>
 
-        <br />
-        <p class="Rodapé">
-          <a href="https://www.instagram.com/dacunhadb">Made by daCunhadB</a>
+        <p class="credit">
+          <a href="https://www.instagram.com/dacunhadb" target="_blank" rel="noopener">Made by daCunhadB</a>
         </p>
       </footer>
     </div>
 
-    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <!-- BLOCO: SCRIPTS DA PÁGINA (tema, fundo animado, revelação por rolagem, galeria) -->
     <script src="./scripts.js"></script>
   </body>
 </html>
