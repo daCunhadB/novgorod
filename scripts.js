@@ -169,7 +169,7 @@
 
   document.querySelectorAll(".share-btn").forEach(function (button) {
     button.addEventListener("click", function () {
-      var post = button.closest(".blog-post");
+      var post = button.closest("[data-share-url]");
       var title = (post && post.dataset.shareTitle) || document.title;
       var url = (post && post.dataset.shareUrl) || window.location.href;
 
