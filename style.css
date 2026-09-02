@@ -578,6 +578,9 @@ html.light .toggle-knob {
 }
 
 .blog-post__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
   font-size: var(--fs-small);
   font-weight: 600;
   text-decoration: none;
@@ -594,12 +597,13 @@ html.light .toggle-knob {
 .share-btn {
   display: inline-flex;
   align-items: center;
+  min-height: 2.5rem;
   gap: 0.35rem;
   font-size: var(--fs-small);
   background: transparent;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-pill);
-  padding: 0.35rem 0.75rem;
+  padding: 0.6rem 0.9rem;
   cursor: pointer;
   transition: background var(--dur-1) ease, border-color var(--dur-1) ease, transform var(--dur-1) ease;
 }
