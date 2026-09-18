@@ -1,9 +1,19 @@
 /* ==========================================================================
    Casa Principesca de Novgorod — scripts
-   1. Alternador de tema (claro/escuro) com persistência
+   Este arquivo é compartilhado por index.html e por todas as páginas de
+   publicação (blog0001.html, blog0002.html, blog0003.html, ...). Cada
+   página só precisa dos elementos com os IDs/classes usados abaixo; o
+   script verifica a presença de cada um antes de usá-lo, então é seguro
+   incluí-lo sem alterações em qualquer nova página do site.
+
+   Índice geral:
+   1. Alternador de tema (claro/escuro) com persistência — também troca o
+      avatar (<img id="avatarImg"> + <source id="avatarSource"> em WebP)
+      quando presente na página.
    2. Barra de progresso de rolagem + paralaxe sutil da bandeira
-   3. Revelação de elementos ao entrar na tela
-   4. Compartilhamento das publicações do blog
+   3. Revelação de elementos ao entrar na tela (classe .reveal)
+   4. Compartilhamento das publicações do blog (Web Share API ou
+      cópia do link para a área de transferência)
    ========================================================================== */
 
 (function () {
@@ -18,17 +28,22 @@
   var html = document.documentElement;
   var themeToggle = document.getElementById("themeToggle");
   var avatarImg = document.getElementById("avatarImg");
+  var avatarSource = document.getElementById("avatarSource");
 
-  var AVATAR_DARK = "./assets/card.png";
-  var AVATAR_LIGHT = "./assets/brasao-pequenas-armas.png";
+  var AVATAR_DARK = { png: "./assets/card.png", webp: "./assets/card.webp" };
+  var AVATAR_LIGHT = { png: "./assets/brasao-pequenas-armas.png", webp: "./assets/brasao-pequenas-armas.webp" };
 
   function applyTheme(isLight) {
     html.classList.toggle("light", isLight);
     if (themeToggle) {
       themeToggle.setAttribute("aria-checked", String(isLight));
     }
+    var avatar = isLight ? AVATAR_LIGHT : AVATAR_DARK;
     if (avatarImg) {
-      avatarImg.src = isLight ? AVATAR_LIGHT : AVATAR_DARK;
+      avatarImg.src = avatar.png;
+    }
+    if (avatarSource) {
+      avatarSource.srcset = avatar.webp;
     }
   }
 

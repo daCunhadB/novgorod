@@ -76,13 +76,16 @@
       <header class="hero hero--compact">
         <a class="brand-link" href="./index.html" aria-label="Voltar à página inicial da Casa de Novgorod">
           <div class="avatar avatar--sm">
-            <img
-              id="avatarImg"
-              src="./assets/card.png"
-              alt="Selo da Casa Principesca de Novgorod"
-              width="64"
-              height="64"
-            />
+            <picture>
+              <source id="avatarSource" srcset="./assets/card.webp" type="image/webp" />
+              <img
+                id="avatarImg"
+                src="./assets/card.png"
+                alt="Selo da Casa Principesca de Novgorod"
+                width="64"
+                height="64"
+              />
+            </picture>
           </div>
           <span class="brand-link__text">
             <strong>Casa Principesca de Novgorod</strong>
@@ -125,6 +128,13 @@
       </header>
 
       <main>
+        <!-- ================================================================
+             PUBLICAÇÃO INDIVIDUAL
+             Cabeçalho compacto acima traz o link de volta à Casa; abaixo,
+             o artigo (.post) reúne título, galeria de imagens de destaque
+             (.post__hero, em grade responsiva), corpo do texto e ações de
+             navegação/compartilhamento.
+             ================================================================ -->
         <article
           class="post reveal"
           data-share-title="Símbolos e memória: ecos heráldicos eslavos"
@@ -149,13 +159,19 @@
             <p class="post__meta">Casa Principesca de Novgorod</p>
           </header>
 
+          <!-- Galeria de imagens de destaque: .post__hero organiza-se em
+               grade responsiva (ver style.css §7b), adaptando-se de uma
+               coluna única no celular a várias colunas em telas largas. -->
           <div class="post__hero">
-            <img
-              src="./assets/poitiers.png"
-              alt="Brasão histórico com leão rampante"
-              loading="lazy"
-              decoding="async"
-            />
+            <picture>
+              <source srcset="./assets/poitiers.webp" type="image/webp" />
+              <img
+                src="./assets/poitiers.png"
+                alt="Brasão histórico com leão rampante"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
           </div>
 
           <div class="post__body">
@@ -186,6 +202,9 @@
         </article>
       </main>
 
+      <!-- ================================================================
+           RODAPÉ / REDES SOCIAIS
+           ================================================================ -->
       <footer>
         <div class="divider" aria-hidden="true"><span class="divider__mark"></span></div>
 

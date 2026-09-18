@@ -1,21 +1,34 @@
 /* ==========================================================================
    Casa Principesca de Novgorod — folha de estilos
-   Organização:
-   1. Reset & tokens (design system)
-   2. Cena de fundo animada (bandeira, véu, raios, textura)
-   3. Base tipográfica e utilitários
-   4. Barra de progresso (rolagem)
-   5. Cabeçalho / perfil / alternador de tema
-   6. Ornamentos e divisores
-   7. Blog
-   8. Links externos
-   9. Legado (texto + emblema)
+   Compartilhada por index.html e por todas as páginas de publicação
+   (blog0001.html, blog0002.html, blog0003.html, e quaisquer novas).
+
+   Índice geral:
+   1.  Reset & tokens (design system: cores, tipografia fluida, espaçamento,
+       raios, durações/easing de transição)
+   2.  Cena de fundo animada (bandeira com deriva/ondulação + filtro SVG de
+       tecido, véu de profundidade, raios de luz, textura de grão,
+       transição de entrada de página)
+   3.  Base tipográfica e utilitários (títulos, links, <picture>/<img>,
+       transições globais de tema claro/escuro)
+   4.  Barra de progresso (rolagem)
+   5.  Cabeçalho / perfil / alternador de tema
+   6.  Ornamentos e divisores
+   7.  Blog (grade de publicações no índice)
+   7b. Página de publicação individual (post) + cabeçalho compacto +
+       galeria responsiva de imagens de destaque (.post__hero)
+   8.  Links externos
+   9.  Legado (texto + emblema)
    10. Multimídia
    11. Rodapé / redes sociais
-   12. Animações de revelação
+   12. Animações de revelação ao rolar (com atrasos escalonados)
    13. Toast (feedback de compartilhamento)
    14. Media queries — responsividade
    15. Acessibilidade (foco, movimento reduzido)
+
+   Convenção: cada bloco abaixo começa com um comentário de seção no mesmo
+   formato deste índice — ao adicionar um novo bloco de estilos, crie uma
+   seção própria e adicione uma entrada correspondente aqui.
    ========================================================================== */
 
 /* -------------------------------------------------------------------------
@@ -130,9 +143,26 @@ body {
   min-height: 100%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--body-bg);
   transition: background var(--dur-3) var(--ease-royal);
+  animation: page-enter 0.7s var(--ease-royal) both;
+}
+
+/* Transição suave de entrada de página (fade + leve elevação) */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scene {
@@ -145,7 +175,7 @@ body {
 
 .scene__flag {
   position: absolute;
-  inset: -6% -6%;
+  inset: -10% -10%;
   background-image: url("./assets/bandeira.png");
   background-image: var(--flag-image, image-set(url("./assets/bandeira.webp") type("image/webp"), url("./assets/bandeira.png") type("image/png")));
   background-repeat: no-repeat;
@@ -153,7 +183,9 @@ body {
   background-size: cover;
   opacity: 0.16;
   filter: url(#cloth-wave) saturate(1.05);
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.04);
+  transform-origin: center 30%;
+  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06);
+  animation: flag-drift 22s var(--ease-royal) infinite;
   will-change: transform;
   transition: opacity var(--dur-3) var(--ease-royal);
 }
@@ -161,6 +193,25 @@ body {
 html.light .scene__flag {
   opacity: 0.15;
   mix-blend-mode: multiply;
+}
+
+/* Ondulação lenta: leve balanço + respiração de escala, como um tecido ao vento */
+@keyframes flag-drift {
+  0% {
+    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(-0.35deg);
+  }
+  25% {
+    transform: translate3d(0.6%, calc(var(--scroll-y, 0) * -0.04px - 6px), 0) scale(1.075) rotate(0.2deg);
+  }
+  50% {
+    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(0.35deg);
+  }
+  75% {
+    transform: translate3d(-0.6%, calc(var(--scroll-y, 0) * -0.04px + 6px), 0) scale(1.045) rotate(-0.2deg);
+  }
+  100% {
+    transform: translate3d(0, calc(var(--scroll-y, 0) * -0.04px), 0) scale(1.06) rotate(-0.35deg);
+  }
 }
 
 .scene__vignette {
@@ -247,6 +298,16 @@ h3 {
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--ink);
+  transition: color var(--dur-3) var(--ease-royal), text-shadow var(--dur-3) var(--ease-royal);
+}
+
+body,
+p,
+a,
+button {
+  transition-property: color, background, background-color, border-color, box-shadow;
+  transition-duration: var(--dur-3);
+  transition-timing-function: var(--ease-royal);
 }
 
 a {
@@ -256,6 +317,12 @@ a {
 img {
   max-width: 100%;
   display: block;
+}
+
+/* <picture> é só um invólucro para as fontes WebP/PNG; o <img> interno
+   continua a receber todo o estilo (dimensão, object-fit, filtros etc.). */
+picture {
+  display: contents;
 }
 
 ul {
@@ -278,10 +345,27 @@ button {
 }
 
 .section-title {
+  position: relative;
   font-size: var(--fs-h2);
   text-align: center;
   margin-bottom: var(--space-4);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.section-title::after {
+  content: "";
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  margin: 0.55rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  transform: scaleX(0);
+  transition: transform var(--dur-3) var(--ease-royal);
+}
+
+.section.is-visible .section-title::after,
+.section-title.is-visible::after {
+  transform: scaleX(1);
 }
 
 html.light .section-title {
@@ -515,7 +599,7 @@ html.light .toggle-knob {
   -webkit-backdrop-filter: blur(0.4rem);
   box-shadow: var(--shadow-1);
   transition: transform var(--dur-2) var(--ease-royal), box-shadow var(--dur-2) var(--ease-royal),
-    border-color var(--dur-2) var(--ease-royal);
+    border-color var(--dur-2) var(--ease-royal), background var(--dur-3) var(--ease-royal);
 }
 
 .blog-post:hover {
@@ -676,6 +760,7 @@ html.light .toggle-knob {
   backdrop-filter: blur(0.4rem);
   -webkit-backdrop-filter: blur(0.4rem);
   box-shadow: var(--shadow-1);
+  transition: background var(--dur-3) var(--ease-royal), border-color var(--dur-3) var(--ease-royal);
 }
 
 .post__back {
@@ -692,11 +777,17 @@ html.light .toggle-knob {
 .post__back .icon {
   width: 1rem;
   height: 1rem;
+  transition: transform var(--dur-1) var(--ease-royal);
 }
 
 .post__back:hover,
 .post__back:focus-visible {
   text-decoration: underline;
+}
+
+.post__back:hover .icon,
+.post__back:focus-visible .icon {
+  transform: translateX(-3px);
 }
 
 .post__header {
@@ -720,21 +811,43 @@ html.light .toggle-knob {
 }
 
 .post__hero {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
   align-items: center;
-  justify-content: center;
-  max-height: 20rem;
-  padding: clamp(1rem, 0.8rem + 1vw, 2rem);
+  justify-items: center;
+  gap: clamp(1rem, 0.7rem + 1.2vw, 2rem);
+  padding: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
   margin-bottom: var(--space-5);
   border-radius: var(--radius-md);
   background: radial-gradient(ellipse at center, var(--surface-hover), transparent 72%);
 }
 
+/* Uma única imagem (ou <picture>) de destaque merece mais espaço do que uma
+   galeria — usamos ":only-child" no filho direto para diferenciar os dois
+   casos, já que ":only-of-type" combinaria erroneamente com qualquer <img>
+   isolado dentro do seu próprio <picture>. */
+.post__hero:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .post__hero img {
-  max-width: 100%;
+  width: 100%;
+  max-width: 16rem;
+  height: auto;
   max-height: 16rem;
   object-fit: contain;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
+  transition: transform var(--dur-2) var(--ease-royal), filter var(--dur-2) var(--ease-royal);
+}
+
+.post__hero:has(> :only-child) img {
+  max-width: 20rem;
+  max-height: 18rem;
+}
+
+.post__hero img:hover {
+  transform: translateY(-4px) scale(1.03);
+  filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.45));
 }
 
 .post__body {
@@ -860,6 +973,7 @@ html.light .toggle-knob {
   backdrop-filter: blur(0.4rem);
   -webkit-backdrop-filter: blur(0.4rem);
   box-shadow: var(--shadow-1);
+  transition: background var(--dur-3) var(--ease-royal), border-color var(--dur-3) var(--ease-royal);
 }
 
 .legado-text .texto-justificado {
@@ -884,7 +998,8 @@ html.light .toggle-knob {
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-1);
-  transition: transform var(--dur-2) var(--ease-royal), box-shadow var(--dur-2) var(--ease-royal);
+  transition: transform var(--dur-2) var(--ease-royal), box-shadow var(--dur-2) var(--ease-royal),
+    background var(--dur-3) var(--ease-royal), border-color var(--dur-3) var(--ease-royal);
 }
 
 .video-card:hover {
@@ -981,12 +1096,20 @@ footer {
   transform: translateY(0);
 }
 
-.blog-post.reveal:nth-child(2) {
+.blog-post.reveal:nth-child(2),
+.link-row .reveal:nth-child(2),
+.video-card.reveal:nth-child(2) {
   transition-delay: 0.08s;
 }
 
-.blog-post.reveal:nth-child(3) {
+.blog-post.reveal:nth-child(3),
+.link-row .reveal:nth-child(3),
+.video-card.reveal:nth-child(3) {
   transition-delay: 0.16s;
+}
+
+.link-row .reveal:nth-child(4) {
+  transition-delay: 0.24s;
 }
 
 /* -------------------------------------------------------------------------

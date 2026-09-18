@@ -14,11 +14,11 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Casa Principesca de Novgorod" />
     <meta property="og:description" content="Casa Principesca de Novgorod e Ducal da Carantânia" />
-    <meta property="og:image" content="./assets/card.png" />
+    <meta property="og:image" content="./assets/bandeira-da-casa.webp" />
     <meta property="og:url" content="https://valukassmolensk.github.io/novgorod/" />
 
-    <link rel="icon" type="image/png" href="./assets/card.png" />
-    <link rel="shortcut icon" type="image/png" href="./assets/card.png" />
+    <link rel="icon" type="image/png" href="./assets/brasao-grandes-armas.webp" />
+    <link rel="shortcut icon" type="image/png" href="./assets/brasao-grandes-armas.webp" />
     <link rel="canonical" href="https://valukassmolensk.github.io/novgorod/" />
 
     <title>Casa Principesca de Novgorod e Ducal da Carantânia</title>
@@ -76,13 +76,16 @@
       <header class="hero">
         <div id="profile">
           <div class="avatar">
-            <img
-              id="avatarImg"
-              src="./assets/card.png"
-              alt="Selo da Casa Principesca de Novgorod"
-              width="140"
-              height="140"
-            />
+            <picture>
+              <source id="avatarSource" srcset="./assets/card.webp" type="image/webp" />
+              <img
+                id="avatarImg"
+                src="./assets/card.png"
+                alt="Selo da Casa Principesca de Novgorod"
+                width="140"
+                height="140"
+              />
+            </picture>
           </div>
           <h1>Casa Principesca de Novgorod</h1>
           <p class="subtitle">Ducal da Carantânia</p>
@@ -135,7 +138,7 @@
              contêiner flexível principal (.blog). Duplique um <article> para
              cada nova publicação e substitua imagem, título, texto e links.
              ================================================================== -->
-        <section class="section" id="blog" aria-labelledby="blog-heading">
+        <section class="section reveal" id="blog" aria-labelledby="blog-heading">
           <h2 id="blog-heading" class="section-title">Blog</h2>
 
           <div class="blog" id="blogGrid">
@@ -146,12 +149,15 @@
               data-share-url="https://valukassmolensk.github.io/novgorod/blog0001.html"
             >
               <div class="blog-post__media">
-                <img
-                  src="./assets/brasao-grandes-armas.png"
-                  alt="Grandes Armas da Casa de Novgorod"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  <source srcset="./assets/brasao-grandes-armas.webp" type="image/webp" />
+                  <img
+                    src="./assets/brasao-grandes-armas.png"
+                    alt="Grandes Armas da Casa de Novgorod"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
               </div>
               <div class="blog-post__body">
                 <h3>Restauração do arquivo heráldico da Casa</h3>
@@ -185,12 +191,15 @@
               data-share-url="https://valukassmolensk.github.io/novgorod/blog0002.html"
             >
               <div class="blog-post__media">
-                <img
-                  src="./assets/brasao-mozer.png"
-                  alt="Brasão da Casa Real Mozer"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  <source srcset="./assets/brasao-mozer.webp" type="image/webp" />
+                  <img
+                    src="./assets/brasao-mozer.png"
+                    alt="Brasão da Casa Real Mozer"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
               </div>
               <div class="blog-post__body">
                 <h3>Vassala da Casa Real Mozer</h3>
@@ -223,12 +232,15 @@
               data-share-url="https://valukassmolensk.github.io/novgorod/blog0003.html"
             >
               <div class="blog-post__media">
-                <img
-                  src="./assets/poitiers.png"
-                  alt="Brasão histórico com leão rampante"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <picture>
+                  <source srcset="./assets/poitiers.webp" type="image/webp" />
+                  <img
+                    src="./assets/poitiers.png"
+                    alt="Brasão histórico com leão rampante"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
               </div>
               <div class="blog-post__body">
                 <h3>Símbolos e memória: ecos heráldicos eslavos</h3>
@@ -263,11 +275,11 @@
         <!-- ================================================================
              LINKS EXTERNOS
              ================================================================ -->
-        <section class="section" id="links" aria-labelledby="links-heading">
+        <section class="section reveal" id="links" aria-labelledby="links-heading">
           <h2 id="links-heading" class="section-title">Links Externos</h2>
 
           <ul class="link-row" id="links-1">
-            <li>
+            <li class="reveal">
               <a
                 href="https://www.instagram.com/armice.novgorod"
                 class="icon-link"
@@ -276,16 +288,16 @@
                 rel="noopener"
               >
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <g fill="none" stroke="currentColor" stroke-width="1.7">
-                <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2" />
-                <circle cx="12" cy="12" r="4.4" />
-                <circle cx="17.15" cy="6.85" r="1" fill="currentColor" stroke="none" />
-              </g>
-            </svg>
+                  <g fill="none" stroke="currentColor" stroke-width="1.7">
+                    <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2" />
+                    <circle cx="12" cy="12" r="4.4" />
+                    <circle cx="17.15" cy="6.85" r="1" fill="currentColor" stroke="none" />
+                  </g>
+                </svg>
               </a>
             </li>
 
-            <li>
+            <li class="reveal">
               <a
                 href="https://casarealmozer.wixsite.com/casarealmozer"
                 class="icon-link"
@@ -293,11 +305,14 @@
                 target="_blank"
                 rel="noopener"
               >
-                <img src="./assets/brasao-mozer.png" alt="Brasão da Casa Real Mozer" loading="lazy" decoding="async" />
+                <picture>
+                  <source srcset="./assets/brasao-mozer.webp" type="image/webp" />
+                  <img src="./assets/brasao-mozer.png" alt="Brasão da Casa Real Mozer" loading="lazy" decoding="async" />
+                </picture>
               </a>
             </li>
 
-            <li>
+            <li class="reveal">
               <a
                 href="https://api.whatsapp.com/send?phone=5534996338010&text=Ol%C3%A1%2C%20tudo%20bem%3F"
                 class="icon-link"
@@ -305,7 +320,10 @@
                 target="_blank"
                 rel="noopener"
               >
-                <img src="./assets/whatsapp.png" alt="WhatsApp" loading="lazy" decoding="async" />
+                <picture>
+                  <source srcset="./assets/whatsapp.webp" type="image/webp" />
+                  <img src="./assets/whatsapp.png" alt="WhatsApp" loading="lazy" decoding="async" />
+                </picture>
               </a>
             </li>
           </ul>
@@ -321,13 +339,16 @@
           <h3 class="section-subtitle">Nosso Legado</h3>
 
           <div class="legado-content">
-            <img
-              class="legado-emblem"
-              src="./assets/brasao-grandes-armas.png"
-              alt="Grandes Armas da Casa Principesca de Novgorod"
-              loading="lazy"
-              decoding="async"
-            />
+            <picture>
+              <source srcset="./assets/brasao-grandes-armas.webp" type="image/webp" />
+              <img
+                class="legado-emblem"
+                src="./assets/brasao-grandes-armas.png"
+                alt="Grandes Armas da Casa Principesca de Novgorod"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
 
             <div class="legado-text">
               <p class="texto-justificado">
@@ -383,7 +404,7 @@
         <!-- ================================================================
              MULTIMÍDIA
              ================================================================ -->
-        <section class="section" id="multimidia" aria-labelledby="multimidia-heading">
+        <section class="section reveal" id="multimidia" aria-labelledby="multimidia-heading">
           <h2 id="multimidia-heading" class="section-title">Multimídia</h2>
 
           <div class="video-grid">
