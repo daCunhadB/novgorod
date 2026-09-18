@@ -539,7 +539,7 @@ html.light .toggle-knob {
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: contain; gap: 3px;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35));
   transition: transform var(--dur-3) var(--ease-royal);
 }
