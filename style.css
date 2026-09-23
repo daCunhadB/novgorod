@@ -1237,3 +1237,14 @@ button:focus-visible {
     transform: none;
   }
 }
+
+
+/* Assinatura ao final de uma publicação do blog. */
+.post__signature {
+  margin-top: 2rem;
+  text-align: center;
+  text-wrap: balance;
+  font-style: italic;
+  line-height: 1.6;
+  opacity: 0.9;
+}

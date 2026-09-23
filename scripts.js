@@ -127,7 +127,11 @@
           }
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+      /* Sem limiar percentual: publicações longas podem ser mais altas que a
+         própria janela e nunca atingiriam 15% de interseção, ficando
+         permanentemente invisíveis (opacity: 0). O rootMargin negativo na
+         base mantém o efeito de "revelar ao subir a página". */
+      { threshold: 0, rootMargin: "0px 0px -15% 0px" }
     );
 
     revealTargets.forEach(function (target) {
