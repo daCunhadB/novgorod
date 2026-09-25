@@ -149,8 +149,84 @@ html.light {
 
 
 /* -------------------------------------------------------------------------
-   2b. Motor atmosférico — luz, sombra e clima
+   SkyMap — canvas panorâmico 360°×180°
+   O canvas fica atrás de tudo (z-index -4) e é controlado pelo skymap.js.
+   As camadas HTML da .scene recebem deslocamento de paralaxe via variáveis
+   CSS --gyro-x e --gyro-y escritas pelo mesmo motor.
    ------------------------------------------------------------------------- */
+#skyCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -4;
+  pointer-events: auto;   /* recebe mouse/touch para arrastar o panorama */
+  cursor: grab;
+  display: block;
+}
+
+#skyCanvas:active {
+  cursor: grabbing;
+}
+
+/* Dica de interação: aparece por 4 s e desaparece */
+.skymap-hint {
+  position: fixed;
+  bottom: clamp(1rem, 4vh, 2.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem 1rem;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 10, 24, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--fs-small);
+  backdrop-filter: blur(.5rem);
+  -webkit-backdrop-filter: blur(.5rem);
+  pointer-events: none;
+  animation: hint-show 4.5s var(--ease-royal) forwards;
+}
+
+.skymap-hint svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  opacity: .8;
+}
+
+@keyframes hint-show {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  12%  { opacity: 1; transform: translateX(-50%) translateY(0);   }
+  72%  { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+/* Variáveis de paralaxe escritas pelo skymap.js.
+   Usadas pelas camadas da .scene para deslocamento proporcional à profundidade. */
+html {
+  --gyro-x: 0px;
+  --gyro-y: 0px;
+  /* Linha de horizonte: estrelas e nuvens ficam acima deste limite */
+  --sky-h: 62%;
+}
+
+@media (max-width: 860px) { html { --sky-h: 58%; } }
+@media (max-width: 520px) { html { --sky-h: 54%; } }
+@media (max-height: 520px) and (orientation: landscape) { html { --sky-h: 50%; } }
+
+/* Paralaxe de profundidade nas camadas existentes da .scene.
+   Cada multiplicador é a profundidade da camada (0 = fundo, 1 = frente). */
+.scene__stars         { transform: translate3d(calc(var(--gyro-x) * 0.08), calc(var(--gyro-y) * 0.08), 0); }
+.scene__orb           { transform: translate3d(calc(var(--gyro-x) * 0.12), calc(var(--gyro-y) * 0.12), 0); }
+.scene__haze          { transform: translate3d(calc(var(--gyro-x) * 0.14), calc(var(--gyro-y) * 0.10), 0); }
+.scene__clouds--far   { transform: translate3d(calc(var(--gyro-x) * 0.18), calc(var(--gyro-y) * 0.10), 0); }
+.scene__clouds--mid   { transform: translate3d(calc(var(--gyro-x) * 0.28), calc(var(--gyro-y) * 0.14), 0); }
+.scene__city          { transform: translate3d(calc(-50% + var(--gyro-x) * 0.42), calc(var(--gyro-y) * 0.20), 0); }
+.scene__clouds--near  { transform: translate3d(calc(var(--gyro-x) * 0.58), calc(var(--gyro-y) * 0.24), 0); }
 body {
   background: var(--weather-body-bg, var(--body-bg));
 }
@@ -167,6 +243,7 @@ body {
 .scene__weather-haze {
   position: absolute;
   inset: 0;
+  z-index: 3;
   pointer-events: none;
   opacity: var(--weather-haze-opacity);
   background:
@@ -174,10 +251,6 @@ body {
     linear-gradient(180deg, rgba(255,255,255,0) 0 55%, rgba(80,70,55,.10) 100%);
   mix-blend-mode: multiply;
   transition: opacity 1.6s ease, background 1.6s ease;
-}
-
-.scene__clouds {
-  opacity: var(--weather-cloud-opacity);
 }
 
 .scene__clouds i {
@@ -201,6 +274,7 @@ body {
 .scene__rain {
   position: absolute;
   inset: -12% -8%;
+  z-index: 8;
   pointer-events: none;
   overflow: hidden;
   opacity: 0;
@@ -229,6 +303,7 @@ body {
 .scene__dry-dust {
   position: absolute;
   inset: 0;
+  z-index: 7;
   pointer-events: none;
   opacity: 0;
   background-image:
@@ -249,6 +324,7 @@ body {
 .scene__lightning {
   position: absolute;
   inset: 0;
+  z-index: 9;
   pointer-events: none;
   opacity: 0;
   background:
@@ -505,32 +581,24 @@ body.is-leaving .container {
   contain: strict;
 }
 
-/* Cada .scene__layer é um plano de profundidade distinto.
-   O JS de giroscópio lê data-depth e aplica translateX/Y proporcional
-   ao ângulo do dispositivo. will-change: transform é declarado aqui
-   para que o compositor já reserve textura de GPU por plano. */
-.scene__layer {
-  position: absolute;
-  inset: 0;
-  will-change: transform;
-}
-
-/* --- Estrelas (só à noite) --- */
+/* --- Estrelas (só à noite) ---
+   clip-path confina ao céu; o paralaxe de gyro já está no transform acima. */
 .scene__stars {
   position: absolute;
   inset: 0;
   background-image: url("./assets/estrelas.webp");
   background-size: 512px 512px;
   opacity: 0.75;
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.012px), 0);
-  transition: opacity var(--dur-3) var(--ease-royal);
+  clip-path: inset(0 0 calc(100% - var(--sky-h)) 0);
+  transition: opacity var(--dur-3) var(--ease-royal), clip-path var(--dur-3) var(--ease-royal);
 }
 
 html.light .scene__stars {
   opacity: 0;
 }
 
-/* --- Astro: lua à noite, sol de dia --- */
+/* --- Astro: lua à noite, sol de dia ---
+   Posicionado no céu; o paralaxe de gyro está em .scene__orb acima. */
 .scene__orb {
   position: absolute;
   top: clamp(6%, 9vh, 14%);
@@ -540,7 +608,6 @@ html.light .scene__stars {
   border-radius: 50%;
   background: radial-gradient(circle at 38% 34%, #fdf8e8, #e8e2cc 58%, #cfc9b2 100%);
   box-shadow: 0 0 40px 14px rgba(226, 226, 208, 0.22), 0 0 140px 60px rgba(180, 198, 230, 0.14);
-  transform: translate3d(0, calc(var(--scroll-y, 0) * -0.02px), 0);
   transition: background var(--dur-3) var(--ease-royal), box-shadow var(--dur-3) var(--ease-royal);
 }
 
@@ -565,7 +632,8 @@ html.light .scene__haze {
 /* --- Nuvens ---
    Dois ladrilhos idênticos lado a lado; o conjunto desliza exatamente a
    largura de um deles, então a emenda nunca aparece. A duração é dividida
-   por --wind: quanto mais forte o vento, mais depressa elas passam. */
+   por --wind: quanto mais forte o vento, mais depressa elas passam.
+   clip-path confina cada faixa ao céu (acima de --sky-h). */
 .scene__clouds {
   --tile: clamp(760px, 120vw, 1280px);
   position: absolute;
@@ -576,6 +644,9 @@ html.light .scene__haze {
   animation: cloud-drift var(--cloud-dur, 150s) linear infinite;
   animation-duration: calc(var(--cloud-dur, 150s) / var(--wind, 1));
   will-change: transform;
+  opacity: var(--weather-cloud-opacity);
+  clip-path: inset(0 0 calc(100% - var(--sky-h)) 0);
+  transition: clip-path var(--dur-3) var(--ease-royal);
 }
 
 .scene__clouds i {
@@ -588,27 +659,28 @@ html.light .scene__haze {
 
 .scene__clouds--far {
   --cloud-dur: 220s;
-  top: calc(2% + var(--scroll-y, 0) * -0.014px);
-  height: clamp(170px, 30vh, 360px);
+  top: 0;
+  height: clamp(140px, 24vh, 300px);
   opacity: 0.5;
 }
 
 .scene__clouds--mid {
   --cloud-dur: 132s;
   --tile: clamp(820px, 135vw, 1420px);
-  top: calc(10% + var(--scroll-y, 0) * -0.026px);
-  height: clamp(190px, 33vh, 400px);
+  top: clamp(80px, 12vh, 180px);
+  height: clamp(160px, 26vh, 320px);
   opacity: 0.68;
 }
 
-/* A faixa da frente é rarefeita de propósito: são poucas mechas passando
-   diante da bandeira, o bastante para dar profundidade sem escondê-la. */
+/* Nuvens da frente: passam diante do palácio — o clip libera 8 pp extras
+   para simular nuvens baixas com profundidade. */
 .scene__clouds--near {
   --cloud-dur: 74s;
   --tile: clamp(900px, 150vw, 1560px);
-  top: calc(26% + var(--scroll-y, 0) * -0.05px);
-  height: clamp(150px, 26vh, 320px);
+  top: clamp(120px, 20vh, 280px);
+  height: clamp(120px, 22vh, 260px);
   opacity: 0.34;
+  clip-path: inset(0 0 calc(100% - calc(var(--sky-h) + 8%)) 0);
 }
 
 .scene__clouds--far i {
@@ -661,7 +733,6 @@ html.light .scene__clouds i {
   bottom: 0;
   height: var(--palace-h);
   aspect-ratio: 2400 / 1180;
-  transform: translate3d(-50%, calc(var(--scroll-y, 0) * -0.008px), 0);
 }
 
 .scene__palace,
@@ -746,20 +817,16 @@ html.light .scene__palace-lights {
   animation: flag-sway 9s ease-in-out infinite;
   animation-duration: calc(9s / var(--wind, 1));
   will-change: transform;
-  /* Conter o sheen e o halo dentro dos limites do pano */
+  /* Conter halo e sheen dentro dos limites do pano */
   overflow: hidden;
-  /* Raio mínimo para não cortar o canto da tachinha de içamento */
   border-radius: 0 1px 1px 0;
 }
 
-/* Halo quente atrás do pano: à noite é o refletor que mantém a bandeira
-   perfeitamente identificável; de dia, apenas um respiro de luz.
-   Agora contido dentro do overflow:hidden do flag-stage, então fica
-   dentro dos limites do pano sem extravazar para o céu. */
+/* Halo quente atrás do pano: contido pelo overflow:hidden */
 .scene__flag-halo {
   position: absolute;
   inset: 0;
-  background: radial-gradient(70% 70% at 38% 50%, rgba(255, 214, 150, 0.28), transparent 72%);
+  background: radial-gradient(70% 70% at 30% 50%, rgba(255, 214, 150, 0.32), transparent 72%);
   opacity: 0.9;
   transition: opacity var(--dur-3) var(--ease-royal);
 }
@@ -913,22 +980,21 @@ html.fx-full .scene__flag-frame--4 {
 }
 
 /* Brilho que percorre o pano de tempos em tempos.
-   Contido pelo overflow:hidden do flag-stage: o translateX empurra a faixa
-   de fora para dentro e para fora novamente, mas ela nunca sai do recorte
-   da bandeira. Largura 300% para que a faixa entre completamente pela
-   esquerda e saia completamente pela direita. */
+   width:300% + left:-100%: a faixa entra pela esquerda e sai pela direita
+   dentro do recorte do overflow:hidden do flag-stage. */
 .scene__flag-sheen {
   position: absolute;
-  inset: 0;
-  width: 300%;
+  top: 0;
+  bottom: 0;
   left: -100%;
+  width: 300%;
   background: linear-gradient(
     104deg,
-    transparent 30%,
-    rgba(255, 246, 216, 0.13) 43%,
+    transparent 32%,
+    rgba(255, 246, 216, 0.12) 44%,
     rgba(255, 252, 238, 0.17) 50%,
-    rgba(255, 246, 216, 0.10) 57%,
-    transparent 70%
+    rgba(255, 246, 216, 0.10) 56%,
+    transparent 68%
   );
   animation: sheen-sweep 17s var(--ease-royal) infinite;
   will-change: transform, opacity;
@@ -949,26 +1015,15 @@ html.fx-full .scene__flag-frame--4 {
   }
 }
 
-/* O sheen tem width:300% e left:-100%; translateX 0% = borda esquerda,
-   translateX 100% = borda direita da bandeira. A faixa luminosa entra
-   e sai pelo lado, jamais aparecendo fora do recorte. */
+/* O sheen tem width:300% e left:-100%.
+   translateX(0%)     = faixa à esquerda da bandeira (início).
+   translateX(33.33%) = faixa à direita da bandeira (fim).
+   overflow:hidden corta qualquer pixel fora do recorte. */
 @keyframes sheen-sweep {
-  0%,
-  8% {
-    transform: translate3d(0%, 0, 0);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 0.8;
-  }
-  90%,
-  100% {
-    transform: translate3d(66.66%, 0, 0);
-    opacity: 0;
-  }
+  0%, 8%  { transform: translate3d(0%, 0, 0);       opacity: 0; }
+  22%     { opacity: 1; }
+  72%     { opacity: 0.78; }
+  90%, 100% { transform: translate3d(33.33%, 0, 0); opacity: 0; }
 }
 
 /* --- Véu de profundidade: escurece a noite, embranquece o dia, e em ambos
