@@ -56,37 +56,61 @@
          e sombra calculadas a partir da mesma superfície de ondas) que se
          alternam em fusão cruzada. A rolagem da página controla o vento:
          --wind acelera o flamular e as nuvens e inclina o mastro. -->
+    <!-- Canvas panorâmico 360° — renderizado pelo JS por baixo de tudo -->
+    <canvas id="panCanvas" aria-hidden="true" style="position:fixed;inset:0;z-index:-4;width:100%;height:100%;pointer-events:none;"></canvas>
+
     <div class="scene" aria-hidden="true">
-      <div class="scene__stars"></div>
-      <div class="scene__orb"></div>
-      <div class="scene__haze"></div>
-
-      <div class="scene__clouds scene__clouds--far">
-        <i></i><i></i>
-      </div>
-      <div class="scene__clouds scene__clouds--mid">
-        <i></i><i></i>
+      <!-- Camadas com profundidades distintas: cada data-depth é usada
+           pelo JS do giroscópio para calcular o deslocamento de paralaxe.
+           Profundidade 0 = plano do fundo (move menos); 1 = plano mais próximo. -->
+      <div class="scene__layer" data-depth="0.08">
+        <div class="scene__stars"></div>
       </div>
 
-      <div class="scene__city">
-        <div class="scene__palace"></div>
-        <div class="scene__palace-lights"></div>
-        <div class="scene__mast">
-          <div class="scene__flag-stage">
-            <div class="scene__flag-halo"></div>
-            <div class="scene__flag">
-              <div class="scene__flag-still"></div>
-              <div class="scene__flag-frame scene__flag-frame--2"></div>
-              <div class="scene__flag-frame scene__flag-frame--3"></div>
-              <div class="scene__flag-frame scene__flag-frame--4"></div>
+      <div class="scene__layer" data-depth="0.12">
+        <div class="scene__orb"></div>
+        <div class="scene__haze"></div>
+      </div>
+
+      <div class="scene__layer" data-depth="0.18">
+        <div class="scene__weather-haze"></div>
+        <div class="scene__rain" id="sceneRain"></div>
+        <div class="scene__dry-dust" id="sceneDryDust"></div>
+        <div class="scene__lightning" id="sceneLightning"></div>
+        <div class="scene__clouds scene__clouds--far">
+          <i></i><i></i>
+        </div>
+      </div>
+
+      <div class="scene__layer" data-depth="0.28">
+        <div class="scene__clouds scene__clouds--mid">
+          <i></i><i></i>
+        </div>
+      </div>
+
+      <div class="scene__layer" data-depth="0.42">
+        <div class="scene__city">
+          <div class="scene__palace"></div>
+          <div class="scene__palace-lights"></div>
+          <div class="scene__mast">
+            <div class="scene__flag-stage">
+              <div class="scene__flag-halo"></div>
+              <div class="scene__flag">
+                <div class="scene__flag-still"></div>
+                <div class="scene__flag-frame scene__flag-frame--2"></div>
+                <div class="scene__flag-frame scene__flag-frame--3"></div>
+                <div class="scene__flag-frame scene__flag-frame--4"></div>
+              </div>
+              <div class="scene__flag-sheen"></div>
             </div>
-            <div class="scene__flag-sheen"></div>
           </div>
         </div>
       </div>
 
-      <div class="scene__clouds scene__clouds--near">
-        <i></i><i></i>
+      <div class="scene__layer" data-depth="0.58">
+        <div class="scene__clouds scene__clouds--near">
+          <i></i><i></i>
+        </div>
       </div>
 
       <div class="scene__vignette"></div>
@@ -116,7 +140,28 @@
             <p>Período da Restauração: 862–1136</p>
             <p>(período principesco de Novgorod)</p>
           </div>
-          <p class="flag-emoji" aria-hidden="true">🇪🇺</p>
+          <p class="flag-emoji" aria-hidden="true"></p>
+        </div>
+
+        <div class="scene-controls" aria-label="Controles da cena">
+          <button id="weatherToggle" class="scene-control" type="button" aria-expanded="false" aria-controls="weatherPanel">
+            <span aria-hidden="true">🇷🇺</span>
+            <span>Clima</span>
+          </button>
+          <div id="weatherPanel" class="weather-panel" hidden>
+            <label class="weather-panel__label" for="weatherMode">Atmosfera</label>
+            <select id="weatherMode" class="weather-select">
+              <option value="auto">Automático</option>
+              <option value="clear">Céu limpo</option>
+              <option value="cloudy">Nublado</option>
+              <option value="rain">Chuva</option>
+              <option value="storm">Tempestade</option>
+              <option value="drought">Seca</option>
+            </select>
+            <div class="weather-readout" id="weatherReadout" aria-live="polite">Sincronizando céu…</div>
+            <div class="weather-location" id="locationReadout">Solicitando localização precisa…</div>
+            <div class="weather-details" id="weatherDetails" aria-live="polite"></div>
+          </div>
         </div>
 
         <div class="theme-toggle-wrap">
