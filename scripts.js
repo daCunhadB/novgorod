@@ -93,9 +93,8 @@
        • astronomia local calculada no cliente para posição aparente do
          Sol/Lua, fase lunar, escala visual e direção da luz.
 
-     Sem permissão/rede, não inventa condições meteorológicas: mantém céu
-     limpo e hora local, informando que a sincronização não está disponível.
-     O modo manual continua disponível durante a sessão para demonstração.
+     Sem permissão/rede, o site cai silenciosamente no modelo local anterior.
+     O modo manual continua disponível para demonstração dos fenômenos.
      ------------------------------------------------------------------ */
   (function initAtmosphere() {
     var scene = document.querySelector(".scene");
@@ -129,6 +128,7 @@
     var weatherDetails = document.getElementById("weatherDetails");
     var orb = scene.querySelector(".scene__orb");
 
+    var WEATHER_KEY = "novgorod-weather-mode";
     var manualMode = "auto";
     var autoState = "clear";
     var lightningTimer = null;
@@ -536,14 +536,6 @@
         "radial-gradient(ellipse at 77% 10%, " + (isDay ? "rgba(255,238,180,.30)" : "rgba(110,140,210,.16)") + ", transparent 58%)," +
         "linear-gradient(180deg," + base.sky1 + " 0%," + base.sky2 + " 34%," + base.sky3 + " 67%," + base.ground + " 100%)"
       );
-      /* Safari/iOS paints its browser chrome from theme-color, while overscroll
-         and safe-area gaps expose the root canvas color. Keep both atmospheric. */
-      var edgeColor = base.sky3 || base.sky2 || base.sky1;
-      document.documentElement.style.setProperty("--weather-edge-color", edgeColor);
-      var browserThemeMeta = document.querySelector('meta[name="theme-color"]');
-      if (browserThemeMeta && browserThemeMeta.getAttribute("content") !== edgeColor) {
-        browserThemeMeta.setAttribute("content", edgeColor);
-      }
       document.documentElement.style.setProperty("--weather-overlay", overlay);
       document.documentElement.style.setProperty("--weather-ground", base.ground);
     }
@@ -641,7 +633,7 @@
         drought: "Seca · ar quente · poeira e miragem moduladas por temperatura, umidade e vento"
       };
       var timeLabel = html.getAttribute("data-scene-time") === "day" ? "Dia" : "Noite";
-      var sourceLabel = weatherState.source === "live" ? "meteorologia atual do Open-Meteo · localização do aparelho" : "meteorologia ao vivo indisponível · céu neutro";
+      var sourceLabel = weatherState.source === "live" ? "dados locais em tempo real" : "modelo local de fallback";
       setReadout(timeLabel + " · " + labels[mode], sourceLabel);
       scheduleLightning(mode);
       updateOrbAndLight();
@@ -662,7 +654,12 @@
     }
 
     function chooseFallbackWeather() {
-      /* Sem dados meteorológicos reais, o automático não simula chuva/neve. */
+      var hour = localNow().getHours() + localNow().getMinutes() / 60;
+      var wave = (Math.sin(Date.now() / 120000) + 1) / 2;
+      if (hour >= 11 && hour <= 16 && wave > .76) return "drought";
+      if (wave > .88) return "storm";
+      if (wave > .64) return "rain";
+      if (wave > .40) return "cloudy";
       return "clear";
     }
 
@@ -680,7 +677,7 @@
       } else {
         applyLightAndWeather(manualMode);
       }
-      setLocationStatus(isSecureGeoContext() ? "Clima local indisponível; aguardando dados meteorológicos…" : "Geolocalização exige HTTPS (ou localhost). Clima ao vivo indisponível.");
+      setLocationStatus(isSecureGeoContext() ? "Aguardando permissão de localização…" : "Geolocalização exige HTTPS (ou localhost). Usando fallback.");
     }
 
     function scheduleLightning(mode) {
@@ -809,8 +806,11 @@
 
     html.setAttribute("data-weather", "clear");
     makeParticles(true);
-    /* Sempre inicia em automático; escolhas de demonstração não persistem. */
-    if (weatherMode) weatherMode.value = "auto";
+    try {
+      var savedMode = localStorage.getItem(WEATHER_KEY);
+      if (savedMode && ["auto","clear","cloudy","rain","snow","storm","drought"].indexOf(savedMode) >= 0) manualMode = savedMode;
+    } catch (err) {}
+    if (weatherMode) weatherMode.value = manualMode;
 
     if (weatherToggle && weatherPanel) {
       weatherToggle.addEventListener("click", function () {
@@ -824,6 +824,7 @@
     if (weatherMode) {
       weatherMode.addEventListener("change", function () {
         manualMode = weatherMode.value;
+        try { localStorage.setItem(WEATHER_KEY, manualMode); } catch (err) {}
         syncThemeLighting();
       });
     }
@@ -941,8 +942,7 @@
       themeToggle.setAttribute("aria-checked", String(isLight));
     }
     if (themeColorMeta) {
-      var atmosphericEdge = getComputedStyle(html).getPropertyValue("--weather-edge-color").trim();
-      themeColorMeta.setAttribute("content", atmosphericEdge || (isLight ? "#6ba3d6" : "#0b1226"));
+      themeColorMeta.setAttribute("content", isLight ? "#6ba3d6" : "#0b1226");
     }
     var avatar = isLight ? AVATAR_LIGHT : AVATAR_DARK;
     if (avatarImg) {

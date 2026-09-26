@@ -56,8 +56,9 @@
          e sombra calculadas a partir da mesma superfície de ondas) que se
          alternam em fusão cruzada. A rolagem da página controla o vento:
          --wind acelera o flamular e as nuvens e inclina o mastro. -->
-    <!-- Panorama 2:1 projetado no campo de visão 360°×180° (SkyMap).
-         Orientação do aparelho e gestos de mouse/toque controlam a câmera. -->
+    <!-- Canvas panorâmico 360°×180° (SkyMap).
+         Fica em z-index -4, atrás da cena HTML.
+         Controlado pelo giroscópio em mobile, mouse/touch em desktop. -->
     <canvas
       id="skyCanvas"
       aria-hidden="true"
@@ -97,8 +98,9 @@
         <i></i><i></i>
       </div>
 
-      <!-- Bandeira de tecido ancorada no mastro do castelo do panorama. -->
       <div class="scene__city">
+        <div class="scene__palace"></div>
+        <div class="scene__palace-lights"></div>
         <div class="scene__mast">
           <div class="scene__flag-stage">
             <div class="scene__flag-halo"></div>

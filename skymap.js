@@ -2,19 +2,29 @@
    Novgorod SkyMap — motor panorâmico 360°×180°
    ==========================================================================
 
-   Implementa um canvas de panorama equiretangular fixo atrás da página.
+   Implementa um canvas equirretangular fixo atrás da cena HTML existente.
    Lê os sensores do dispositivo (DeviceOrientationEvent) e o mouse/touch
    para rotacionar o ponto de vista em 360° horizontais × 180° verticais,
-   com interação de orientação semelhante a visualizadores de céu. A fonte
-   visual do cenário é uma imagem panorâmica, não uma malha 3D reconstruída.
+   exatamente como apps de skymap (Stellarium, SkySafari) e wallpapers
+   dinâmicos do iOS.
 
    Camadas renderizadas (de trás para a frente):
-     1. Projeta os panoramas diurno e noturno para o campo de visão.
-     2. Desenha céu procedural como preenchimento fora da imagem.
-     3. Controla vista por sensor, mouse, toque e teclado.
+     1. Gradiente de céu dinâmico (sincronizado com data-scene-time e
+        data-weather definidos pelo motor atmosférico existente)
+     2. Estrelas procedurais (450+ estrelas com magnitude, cor espectral e
+        cintilação; visíveis apenas à noite)
+     3. Sol ou Lua posicionados de acordo com o motor astronômico existente
+        (lê --orb-x, --orb-y, --orb-altitude definidos pelo JS original)
+     4. Terreno panorâmico: floresta de taiga, Rio Volkhov, cidade, campos
+        (desenhados em vetor a partir das coordenadas do azimute)
+     5. Névoa de horizonte volumétrica
 
-   O panorama mantém relação de aspecto; estrelas procedurais adicionais
-   são decorativas e não representam um catálogo astronômico em tempo real.
+   Paralaxe de profundidade por camada:
+     O canvas é o fundo (z-index -4). Sobre ele, a cena HTML existente
+     (.scene) é deslocada via CSS custom property --gyro-x / --gyro-y
+     escritas por este motor, de modo que cada camada CSS com data-parallax
+     se desloca em proporção à sua profundidade — sem tocar na lógica de
+     animação da bandeira ou das nuvens.
 
    Controles:
      • Giroscópio real (DeviceOrientationEvent / iOS requestPermission)
@@ -34,12 +44,9 @@
   var CFG = {
     FOV_H:       100,   /* graus horizontais visíveis (campo de visão) */
     FOV_V:        60,   /* graus verticais visíveis */
-    MAX_DPR:        3,   /* densidade máxima de renderização */
-    MAX_CANVAS_PIXELS: 8294400, /* limita memória em tablets e telas grandes */
     PARALLAX_MAX: 32,   /* px de deslocamento máximo das camadas HTML */
     GYRO_SENS_AZ: 2.4,  /* sensibilidade: graus de gamma → graus de azimute */
-    GYRO_DEADZONE_EL: 10, /* ignora pequenas oscilações involuntárias do aparelho */
-    GYRO_MAX_EL: 85, /* faixa útil do olhar, sem permitir atravessar os polos */
+    GYRO_SENS_EL: 0.55, /* sensibilidade: graus de beta  → graus de elevação */
     MOUSE_SENS:   0.40, /* sensibilidade do arrastar de mouse */
     LERP_AZ:      0.07, /* suavização exponencial do azimute */
     LERP_EL:      0.10,
@@ -55,41 +62,23 @@
     var html    = document.documentElement;
     var canvas  = document.getElementById("skyCanvas");
     if (!canvas) return;
-    html.classList.add("has-skymap");
 
     var ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.imageSmoothingEnabled = true;
-      if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
-    }
     var W = 0, H = 0;
-    var zoom = 1.15;
+    var zoom = 1.25;
     var fovH = CFG.FOV_H / zoom;
     var fovV = CFG.FOV_V / zoom;
-    var panoramaDay = new Image();
-    var panoramaNight = new Image();
-    panoramaDay.src = "./assets/cena-dia.png";
-    panoramaNight.src = "./assets/cena-noite.png";
-
-    function updateFov() {
-      fovV = CFG.FOV_V / zoom;
-      fovH = 2 * Math.atan(Math.tan(fovV * Math.PI / 360) * (W / Math.max(1, H))) * 180 / Math.PI;
-      fovH = Math.max(8, Math.min(150, fovH));
-    }
 
     /* --- Resize ------------------------------------------------------------ */
     function resize() {
       W = window.innerWidth;
       H = window.innerHeight;
-      var requestedDpr = Math.min(window.devicePixelRatio || 1, CFG.MAX_DPR);
-      var pixelBudgetDpr = Math.sqrt(CFG.MAX_CANVAS_PIXELS / Math.max(1, W * H));
-      var dpr = Math.max(1, Math.min(requestedDpr, pixelBudgetDpr));
+      var dpr = Math.min(window.devicePixelRatio || 1, 3);
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       canvas.style.width = W + "px";
       canvas.style.height = H + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      updateFov();
       buildTerrain();   /* recalcular geometria do terreno */
     }
     window.addEventListener("resize", resize, { passive: true });
@@ -98,9 +87,9 @@
     /* -----------------------------------------------------------------------
        Estado da câmera
        ----------------------------------------------------------------------- */
-    var az    = 172.8; /* castelo central alinhado ao centro do panorama */
+    var az    = 180;   /* azimute atual suavizado (0-360°; 180 = sul / kremlin) */
     var el    = 0;     /* elevação atual suavizada (-90 a +90°) */
-    var rawAz = 172.8; /* alvo bruto do sensor/input */
+    var rawAz = 180;   /* alvo bruto do sensor/input */
     var rawEl = 0;
 
     /* Paralaxe HTML (escrito em --gyro-x / --gyro-y) */
@@ -299,50 +288,6 @@
       grad.addColorStop(1,    rgbStr(p.skyHazeColor, 0.7));
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, groundY);
-    }
-
-    /* Projeta o panorama equiretangular 2:1 no campo de visão da câmera.
-       As colunas se repartem na emenda horizontal para manter o giro contínuo. */
-    function drawPanorama(image, alpha, paintUnderlay) {
-      if (!image || !image.complete || !image.naturalWidth || !image.naturalHeight) return false;
-      var iw = image.naturalWidth, ih = image.naturalHeight;
-      var sourceW = iw * fovH / 360;
-      var horizonY = ih * .38;
-      var sourceH = ih * fovV / 180;
-      var centerX = iw * .5 + angleDiff(az, 180) / 360 * iw - parX / (W / sourceW);
-      var centerY = horizonY - el / 180 * ih - parY * sourceH / H;
-      var sourceTop = centerY - sourceH * .5;
-      var sy = Math.max(0, sourceTop);
-      var sb = Math.min(ih, sourceTop + sourceH);
-      var palette = getPalette();
-      var base = ctx.createLinearGradient(0, 0, 0, H);
-      base.addColorStop(0, palette.isDay ? "#6ba6d4" : "#071023");
-      base.addColorStop(.52, palette.isDay ? "#bed8e8" : "#23304b");
-      base.addColorStop(1, palette.isDay ? "#6d705e" : "#171b26");
-      if (paintUnderlay !== false) {
-        ctx.fillStyle = base;
-        ctx.fillRect(0, 0, W, H);
-      }
-      if (sb <= sy) return true;
-      var destY = (sy - sourceTop) / sourceH * H;
-      var destH = (sb - sy) / sourceH * H;
-      var scaleX = W / sourceW;
-      var left = ((centerX - sourceW * .5) % iw + iw) % iw;
-      var consumed = 0;
-      var remaining = sourceW;
-      ctx.save();
-      ctx.globalAlpha = alpha == null ? 1 : alpha;
-      while (remaining > .001) {
-        var chunk = Math.min(remaining, iw - left);
-        var dx = consumed * scaleX;
-        var dw = chunk * scaleX + .5;
-        ctx.drawImage(image, left, sy, chunk, sb - sy, dx, destY, dw, destH);
-        consumed += chunk;
-        remaining -= chunk;
-        left = 0;
-      }
-      ctx.restore();
-      return true;
     }
 
     /* -----------------------------------------------------------------------
@@ -584,9 +529,6 @@
        Loop de renderização principal
        ----------------------------------------------------------------------- */
     var lastFrame = 0;
-    var shownPeriod = html.getAttribute("data-scene-time") === "night" ? "night" : "day";
-    var targetPeriod = shownPeriod;
-    var periodTransitionStart = 0;
 
     function render(now) {
       /* Suavizar câmera */
@@ -596,7 +538,7 @@
 
       var dEl = rawEl - el;
       el += dEl * CFG.LERP_EL;
-      el  = Math.max(-85, Math.min(85, el));
+      el  = Math.max(-45, Math.min(45, el));
 
       /* Suavizar paralaxe */
       parX += (rawParX - parX) * CFG.LERP_PAR;
@@ -606,30 +548,13 @@
       document.documentElement.style.setProperty("--gyro-x", parX.toFixed(2) + "px");
       document.documentElement.style.setProperty("--gyro-y", parY.toFixed(2) + "px");
       document.documentElement.style.setProperty("--scene-zoom", zoom.toFixed(2));
-      document.documentElement.style.setProperty("--sky-pan-x", (-angleDiff(az, 180) / fovH * W).toFixed(1) + "px");
-      document.documentElement.style.setProperty("--sky-pan-y", (el / fovV * H).toFixed(1) + "px");
-      /* Keep clouds and weather layers within the sky visible to the camera. */
-      document.documentElement.style.setProperty("--sky-h", Math.max(4, Math.min(96, getGroundFrac() * 100)).toFixed(2) + "%");
-      /* Posição do pé do mastro embutido no panorama. O artwork diurno e
-         noturno tem enquadramentos ligeiramente diferentes no mesmo telhado. */
-      var isNightPanorama = html.getAttribute("data-scene-time") === "night";
-      var flagImageX = isNightPanorama ? 892 : 894;
-      var flagImageY = isNightPanorama ? 304 : 294;
-      var castleElevation = (.38 - flagImageY / 887) * 180;
-      var castleAzimuth = 180 + (flagImageX - 887) / 1774 * 360;
-      /* drawPanorama shifts image pixels by +parX/+parY on screen; use the
-         same sign here so the HTML flag stays registered to the castle. */
-      var castleX = W * .5 + angleDiff(castleAzimuth, az) / fovH * W + parX;
-      var castleY = H * .5 - (castleElevation - el) / fovV * H + parY;
-      document.documentElement.style.setProperty("--mast-anchor-x", castleX.toFixed(1) + "px");
-      document.documentElement.style.setProperty("--mast-anchor-y", castleY.toFixed(1) + "px");
-      /* Scale the DOM cloth by the panorama's current projection. This keeps
-         its size locked to the photographed pennant while zoom/FOV changes. */
-      var sourcePanoramaWidth = 1774 * fovH / 360;
-      var flagWidth = 22.5 * W / sourcePanoramaWidth;
-      document.documentElement.style.setProperty("--mast-flag-width", flagWidth.toFixed(2) + "px");
-      var mast = document.querySelector(".scene__mast");
-      if (mast) mast.style.visibility = Math.abs(angleDiff(castleAzimuth, az)) <= fovH * .5 + 5 && castleElevation >= el - fovV * .5 - 5 && castleElevation <= el + fovV * .5 + 5 ? "visible" : "hidden";
+      /* Imagem 1774×887: escala uniforme (sem deformar) e recorte cover. */
+      var imageWidth = Math.max(W, H * (1774 / 887)) * zoom;
+      var imageHeight = imageWidth * (887 / 1774);
+      document.documentElement.style.setProperty("--scene-image-width", imageWidth.toFixed(1) + "px");
+      /* Castelo e bandeira usam o mesmo recorte, zoom e paralaxe do fundo. */
+      document.documentElement.style.setProperty("--mast-anchor-x", (W * .5 + (0.48 - .5) * imageWidth - parX).toFixed(1) + "px");
+      document.documentElement.style.setProperty("--mast-anchor-y", (H * .5 + (0.235 - .5) * imageHeight - parY).toFixed(1) + "px");
 
       var t = now * 0.001;   /* tempo em segundos */
       var p = getPalette();
@@ -637,30 +562,10 @@
 
       ctx.clearRect(0, 0, W, H);
       drawSky(p, groundY);
-      var requestedPeriod = html.getAttribute("data-scene-time") === "night" ? "night" : "day";
-      if (requestedPeriod !== targetPeriod) {
-        shownPeriod = targetPeriod;
-        targetPeriod = requestedPeriod;
-        periodTransitionStart = now;
-      }
-      var transition = periodTransitionStart ? Math.max(0, Math.min(1, (now - periodTransitionStart) / 1800)) : 1;
-      var fromPanorama = shownPeriod === "night" ? panoramaNight : panoramaDay;
-      var toPanorama = targetPeriod === "night" ? panoramaNight : panoramaDay;
-      var panoramaReady;
-      if (transition < 1 && shownPeriod !== targetPeriod) {
-        panoramaReady = drawPanorama(fromPanorama, 1 - transition, true) && drawPanorama(toPanorama, transition, false);
-      } else {
-        if (periodTransitionStart) { shownPeriod = targetPeriod; periodTransitionStart = 0; }
-        panoramaReady = drawPanorama(toPanorama, 1, true);
-      }
-      if (panoramaReady) {
-        drawHaze(p, groundY);
-      } else {
-        drawStars(p, t);
-        drawGround(p, groundY);
-        drawTerrain(p, groundY, t);
-        drawHaze(p, groundY);
-      }
+      drawStars(p, t);
+      drawGround(p, groundY);
+      drawTerrain(p, groundY, t);
+      drawHaze(p, groundY);
       drawVignette();
 
       lastFrame = now;
@@ -682,28 +587,22 @@
 
       if (baseB === null) { baseB = b; baseG = g; }
 
-      var dB = angleDiff(b, baseB); /* delta beta (frente/trás), sem salto angular */
+      var dB = b - baseB;   /* delta beta  (frente/trás) */
       var dG = g - baseG;   /* delta gamma (esq/dir)     */
 
       /* Priorizar bússola absoluta; usar a inclinação como fallback. */
       var heading = typeof evt.webkitCompassHeading === "number" ? evt.webkitCompassHeading :
         (evt.absolute && typeof evt.alpha === "number" ? 360 - evt.alpha : null);
       if (heading !== null && isFinite(heading)) rawAz = ((heading % 360) + 360) % 360;
-      else rawAz = ((172.8 + dG * CFG.GYRO_SENS_AZ) % 360 + 360) % 360;
+      else rawAz = ((180 + dG * CFG.GYRO_SENS_AZ) % 360 + 360) % 360;
 
-      /* Curva de elevação com zona morta e ganho progressivo: reduz tremor
-         perto da calibração e exige inclinação deliberada para erguer a vista.
-         Inclinar o aparelho até a vertical ainda permite alcançar o zênite. */
-      var pitchMagnitude = Math.max(0, Math.abs(dB) - CFG.GYRO_DEADZONE_EL);
-      var pitchRange = Math.max(1, 90 - CFG.GYRO_DEADZONE_EL);
-      var pitchT = Math.min(1, pitchMagnitude / pitchRange);
-      var pitch = CFG.GYRO_MAX_EL * pitchT * pitchT;
-      rawEl = (dB < 0 ? -1 : 1) * pitch;
+      /* Elevação: inclinação frente/trás (invertida: frente=cima) */
+      rawEl = Math.max(-45, Math.min(45, dB * -CFG.GYRO_SENS_EL));
 
       /* Paralaxe das camadas HTML */
       var norm = CFG.PARALLAX_MAX;
       rawParX = -dG / 45 * norm;
-      rawParY = rawEl / CFG.GYRO_MAX_EL * norm * 0.6;
+      rawParY = -dB / 45 * norm * 0.6;
 
       if (!hasGyro) {
         hasGyro = true;
@@ -723,16 +622,12 @@
             ? DeviceMotionEvent.requestPermission()
             : Promise.resolve("granted");
           orientationAccess.then(function (s) {
-            if (s === "granted") {
-              window.addEventListener("deviceorientation", onOrientation, { passive: true });
-              window.addEventListener("deviceorientationabsolute", onOrientation, { passive: true });
-            }
+            if (s === "granted") window.addEventListener("deviceorientation", onOrientation, { passive: true });
           }).catch(function () {});
           motionAccess.catch(function () {});
         }, { once: true });
       } else {
         window.addEventListener("deviceorientation", onOrientation, { passive: true });
-        window.addEventListener("deviceorientationabsolute", onOrientation, { passive: true });
       }
     }
     activateGyro();
@@ -743,7 +638,7 @@
     var dragging   = false;
     var dragStartX = 0;
     var dragStartY = 0;
-    var dragAz0    = 172.8;
+    var dragAz0    = 180;
     var dragEl0    = 0;
 
     function onMouseDown(e) {
@@ -767,7 +662,7 @@
       var dx = e.clientX - dragStartX;
       var dy = e.clientY - dragStartY;
       rawAz = ((dragAz0 - dx * CFG.MOUSE_SENS) % 360 + 360) % 360;
-      rawEl = Math.max(-85, Math.min(85, dragEl0 + dy * CFG.MOUSE_SENS * 0.5));
+      rawEl = Math.max(-45, Math.min(45, dragEl0 + dy * CFG.MOUSE_SENS * 0.5));
     }
 
     function onMouseUp()   { dragging = false; }
@@ -776,31 +671,9 @@
       if (!hasGyro) { rawParX = 0; rawParY = 0; }
     }
 
-    /* A cena cobre a tela por baixo do conteúdo. O gesto global permite girar
-       também sobre áreas transparentes sem capturar cliques em controles. */
-    var pointerDragId = null;
-    window.addEventListener("pointerdown", function (e) {
-      if (e.pointerType !== "mouse" || e.button !== 0) return;
-      if (e.target && e.target.closest && e.target.closest("a,button,input,select,textarea,[role='button']")) return;
-      pointerDragId = e.pointerId;
-      dragging = true; dragStartX = e.clientX; dragStartY = e.clientY;
-      dragAz0 = rawAz; dragEl0 = rawEl;
-    }, { passive: true });
-    window.addEventListener("pointermove", function (e) {
-      if (!dragging || pointerDragId !== e.pointerId) return;
-      onMouseMove(e);
-    }, { passive: false });
-    function endPointerDrag(e) {
-      if (pointerDragId !== null && (!e || e.pointerId === pointerDragId)) {
-        pointerDragId = null; dragging = false;
-      }
-    }
-    window.addEventListener("pointerup", endPointerDrag, { passive: true });
-    window.addEventListener("pointercancel", endPointerDrag, { passive: true });
-
     function onWheel(e) {
-      if (e.shiftKey) rawEl = Math.max(-85, Math.min(85, rawEl - e.deltaY * 0.05));
-      else { zoom = Math.max(1, Math.min(2.2, zoom + (e.deltaY < 0 ? 0.08 : -0.08))); updateFov(); }
+      if (e.shiftKey) rawEl = Math.max(-45, Math.min(45, rawEl - e.deltaY * 0.05));
+      else { zoom = Math.max(1, Math.min(2.2, zoom + (e.deltaY < 0 ? 0.08 : -0.08))); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     }
 
     var skyCnv = canvas;
@@ -813,7 +686,7 @@
     /* -----------------------------------------------------------------------
        Entradas: touch (deslizar para rotacionar)
        ----------------------------------------------------------------------- */
-    var touchAz0   = 172.8;
+    var touchAz0   = 180;
     var touchEl0   = 0;
     var touchStartX= 0;
     var touchStartY= 0;
@@ -838,13 +711,13 @@
         var px = e.touches[0].clientX - e.touches[1].clientX;
         var py = e.touches[0].clientY - e.touches[1].clientY;
         var pinchNow = Math.sqrt(px * px + py * py);
-        if (pinchStart > 0) { zoom = Math.max(1, Math.min(2.2, pinchZoom * pinchNow / pinchStart)); updateFov(); }
+        if (pinchStart > 0) { zoom = Math.max(1, Math.min(2.2, pinchZoom * pinchNow / pinchStart)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
         return;
       }
       var dx = e.touches[0].clientX - touchStartX;
       var dy = e.touches[0].clientY - touchStartY;
       rawAz = ((touchAz0 - dx * CFG.MOUSE_SENS * 1.4) % 360 + 360) % 360;
-      rawEl = Math.max(-85, Math.min(85, touchEl0 + dy * CFG.MOUSE_SENS * 0.7));
+      rawEl = Math.max(-45, Math.min(45, touchEl0 + dy * CFG.MOUSE_SENS * 0.7));
     }, { passive: true });
 
     /* -----------------------------------------------------------------------
@@ -854,11 +727,11 @@
       var step = 5;
       if (e.key === "ArrowLeft")  { rawAz = ((rawAz - step) % 360 + 360) % 360; }
       if (e.key === "ArrowRight") { rawAz = ((rawAz + step) % 360 + 360) % 360; }
-      if (e.key === "ArrowUp")    { rawEl = Math.min(85, rawEl + step * 0.5); }
-      if (e.key === "ArrowDown")  { rawEl = Math.max(-85, rawEl - step * 0.5); }
-      if (e.key === "+" || e.key === "=") { zoom = Math.min(2.2, zoom + 0.1); updateFov(); }
-      if (e.key === "-") { zoom = Math.max(1, zoom - 0.1); updateFov(); }
-      if (e.key === "r" || e.key === "R") { rawAz = 172.8; rawEl = 0; zoom = 1.15; updateFov(); baseB = null; baseG = null; }
+      if (e.key === "ArrowUp")    { rawEl = Math.min(45, rawEl + step * 0.5); }
+      if (e.key === "ArrowDown")  { rawEl = Math.max(-45, rawEl - step * 0.5); }
+      if (e.key === "+" || e.key === "=") { zoom = Math.min(2.2, zoom + 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      if (e.key === "-") { zoom = Math.max(1, zoom - 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1.25; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; baseB = null; baseG = null; }
     });
 
     /* -----------------------------------------------------------------------
@@ -868,10 +741,10 @@
       getAzimuth:   function () { return az; },
       getElevation: function () { return el; },
       setAzimuth:   function (a) { rawAz = ((a % 360) + 360) % 360; },
-      setElevation: function (e) { rawEl = Math.max(-85, Math.min(85, e)); },
-      recenter:     function () { rawAz = 172.8; rawEl = 0; zoom = 1.15; updateFov(); },
+      setElevation: function (e) { rawEl = Math.max(-45, Math.min(45, e)); },
+      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1.25; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; },
       getZoom:      function () { return zoom; },
-      setZoom:      function (value) { zoom = Math.max(1, Math.min(2.2, Number(value) || 1.15)); updateFov(); }
+      setZoom:      function (value) { zoom = Math.max(1, Math.min(2.2, Number(value) || 1.25)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     };
   }
 

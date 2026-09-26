@@ -514,7 +514,6 @@ body {
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
-  background-color: var(--weather-edge-color, #0b1226);
 
   /* Controles da cena — o JS escreve --wind e --scroll-y */
   --wind: 1;
@@ -1006,13 +1005,13 @@ html.fx-full .scene__flag-frame--4 {
 @keyframes flag-sway {
   0%,
   100% {
-    transform: rotate(-0.9deg);
+    transform: rotate(-0.9deg) translate3d(0, 0, 0);
   }
   35% {
-    transform: rotate(0.7deg);
+    transform: rotate(0.7deg) translate3d(0, calc(var(--flag-h) * -0.012), 0);
   }
   70% {
-    transform: rotate(-0.25deg);
+    transform: rotate(-0.25deg) translate3d(0, calc(var(--flag-h) * 0.012), 0);
   }
 }
 
@@ -2388,10 +2387,7 @@ button:focus-visible {
 }
 
 /* A variável atmosférica tem precedência sobre a paleta fixa de tema. */
-body {
-  background: var(--weather-body-bg, var(--body-bg));
-  background-color: var(--weather-edge-color, #0b1226);
-}
+body { background: var(--weather-body-bg, var(--body-bg)); }
 
 
 /* -------------------------------------------------------------------------
@@ -2635,19 +2631,11 @@ html[data-scene-time="day"] .scene__palace-lights {
 /* Panorama enviado: troca automática guiada pelo horário astronômico local. */
 .scene {
   background-image: url("./assets/cena-dia.png");
-  background-size: var(--scene-image-width, max(100vw, 200vh)) auto;
+  background-size: var(--scene-image-width, cover) auto;
   background-position: calc(50% - var(--gyro-x, 0px)) calc(50% - var(--gyro-y, 0px));
   background-repeat: no-repeat;
 }
 html[data-scene-time="night"] .scene { background-image: url("./assets/cena-noite.png"); }
-/* Só o index transfere o panorama ao canvas; artigos mantêm seu fundo CSS. */
-html.has-skymap .scene { background-image: none !important; background-color: transparent !important; }
-html.has-skymap .scene__clouds { left: var(--sky-pan-x, 0px) !important; margin-top: var(--sky-pan-y, 0px); }
-#skyCanvas { filter: saturate(1.08) contrast(1.035); }
-html[data-weather="rain"] #skyCanvas { filter: saturate(1.14) contrast(1.06) brightness(.96); }
-html[data-weather="storm"] #skyCanvas { filter: saturate(1.2) contrast(1.12) brightness(.72) hue-rotate(8deg); }
-html[data-weather="snow"] #skyCanvas { filter: saturate(.84) brightness(1.06) contrast(1.04); }
-html[data-weather="drought"] #skyCanvas { filter: saturate(1.18) sepia(.12) contrast(1.08) brightness(1.02); }
 .scene__haze { display: none !important; }
 .scene__weather-haze { mix-blend-mode: soft-light; }
 .scene__rain.is-snow span {
@@ -2661,7 +2649,7 @@ html[data-weather="drought"] #skyCanvas { filter: saturate(1.18) sepia(.12) cont
   to { transform: translate3d(calc(var(--drift) * .38),108vh,0); }
 }
 html[data-weather="snow"] .scene__rain { opacity: .95; }
-/* O castelo é parte do panorama; a bandeira animada é uma camada separada. */
+/* Mantém a bandeira de tecido do layout anterior sobre a cena enviada. */
 .scene__city { display: block !important; }
 .scene__palace, .scene__palace-lights { display: none !important; }
 
@@ -2671,51 +2659,12 @@ html { --scene-zoom: 1; }
    sintéticos do tema anterior para não os desenhar em duplicidade. */
 .scene__orb, .scene__stars { display: none !important; }
 
-/* O mastro da fotografia continua no panorama; este ponto invisível serve
-   apenas de âncora para a bandeira que o substitui visualmente. */
+/* Bandeira animada alinhada ao mastro retratado no topo do castelo da imagem. */
 .scene__city { left: 50% !important; }
 .scene__mast {
   bottom: calc(var(--palace-h) * 1.10);
   --flag-w: clamp(54px, 6vw, 90px);
   --flag-h: calc(var(--flag-w) * 0.709);
-}
-
-/* No panorama 360°, a âncora segue a base do mastro da torre central.
-   O próprio mastro já está pintado na cena, portanto só desenhamos o pano. */
-html.has-skymap .scene__mast {
-  top: 0 !important;
-  bottom: auto !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: none !important;
-  transform: none !important;
-}
-html.has-skymap .scene__mast::before { display: none !important; }
-html.has-skymap .scene__mast {
-  --flag-w: var(--mast-flag-width, clamp(46px, 5.4vw, 190px));
-  --flag-h: calc(var(--flag-w) * 0.709);
-}
-html.has-skymap .scene__flag-stage {
-  left: 0 !important;
-  top: auto !important;
-  bottom: 0 !important;
-  width: var(--flag-w) !important;
-  height: var(--flag-h) !important;
-  margin: 0 !important;
-  overflow: hidden;
-  transform-origin: 0% 100%;
-  animation: flag-sway 9s ease-in-out infinite;
-  animation-duration: calc(9s / var(--wind, 1));
-}
-html.has-skymap .scene__flag-stage::before {
-  content: "";
-  position: absolute;
-  z-index: 5;
-  inset: 0 auto 0 0;
-  width: clamp(2px, .16vw, 4px);
-  background: linear-gradient(90deg, rgba(28, 17, 16, .76), rgba(238, 194, 112, .62), rgba(58, 28, 20, .5));
-  box-shadow: 1px 0 3px rgba(24, 14, 12, .5);
-  pointer-events: none;
 }
 
 
