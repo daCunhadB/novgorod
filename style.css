@@ -2657,7 +2657,7 @@ html[data-weather="drought"] #skyCanvas { filter: saturate(1.18) sepia(.12) cont
   to { transform: translate3d(calc(var(--drift) * .38),108vh,0); }
 }
 html[data-weather="snow"] .scene__rain { opacity: .95; }
-/* Mantém a bandeira de tecido do layout anterior sobre a cena enviada. */
+/* O castelo é parte do panorama; a bandeira animada é uma camada separada. */
 .scene__city { display: block !important; }
 .scene__palace, .scene__palace-lights { display: none !important; }
 
@@ -2667,12 +2667,41 @@ html { --scene-zoom: 1; }
    sintéticos do tema anterior para não os desenhar em duplicidade. */
 .scene__orb, .scene__stars { display: none !important; }
 
-/* Bandeira animada alinhada ao mastro retratado no topo do castelo da imagem. */
+/* O mastro da fotografia continua no panorama; este ponto invisível serve
+   apenas de âncora para a bandeira que o substitui visualmente. */
 .scene__city { left: 50% !important; }
 .scene__mast {
   bottom: calc(var(--palace-h) * 1.10);
   --flag-w: clamp(54px, 6vw, 90px);
   --flag-h: calc(var(--flag-w) * 0.709);
+}
+
+/* No panorama 360°, a âncora segue a base do mastro da torre central.
+   O próprio mastro já está pintado na cena, portanto só desenhamos o pano. */
+html.has-skymap .scene__mast {
+  top: 0 !important;
+  bottom: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: none !important;
+  transform: none !important;
+}
+html.has-skymap .scene__mast::before { display: none !important; }
+html.has-skymap .scene__mast {
+  --flag-w: clamp(42px, 5vw, 180px);
+  --flag-h: calc(var(--flag-w) * 0.709);
+}
+html.has-skymap .scene__flag-stage {
+  left: 0 !important;
+  top: auto !important;
+  bottom: 0 !important;
+  width: var(--flag-w) !important;
+  height: var(--flag-h) !important;
+  margin: 0 !important;
+  overflow: hidden;
+  transform-origin: 0% 100%;
+  animation: flag-sway 9s ease-in-out infinite;
+  animation-duration: calc(9s / var(--wind, 1));
 }
 
 

@@ -599,8 +599,13 @@
       document.documentElement.style.setProperty("--scene-zoom", zoom.toFixed(2));
       document.documentElement.style.setProperty("--sky-pan-x", (-angleDiff(az, 180) / fovH * W).toFixed(1) + "px");
       document.documentElement.style.setProperty("--sky-pan-y", (el / fovV * H).toFixed(1) + "px");
-      var castleElevation = (.38 - .315) * 180;
-      var castleAzimuth = 172.8;
+      /* Posição do pé do mastro embutido no panorama. O artwork diurno e
+         noturno tem enquadramentos ligeiramente diferentes no mesmo telhado. */
+      var isNightPanorama = html.getAttribute("data-scene-time") === "night";
+      var flagImageX = isNightPanorama ? 892 : 894;
+      var flagImageY = isNightPanorama ? 304 : 294;
+      var castleElevation = (.38 - flagImageY / 887) * 180;
+      var castleAzimuth = 180 + (flagImageX - 887) / 1774 * 360;
       var castleX = W * .5 + angleDiff(castleAzimuth, az) / fovH * W - parX;
       var castleY = H * .5 - (castleElevation - el) / fovV * H - parY;
       document.documentElement.style.setProperty("--mast-anchor-x", castleX.toFixed(1) + "px");
