@@ -34,9 +34,12 @@
   var CFG = {
     FOV_H:       100,   /* graus horizontais visíveis (campo de visão) */
     FOV_V:        60,   /* graus verticais visíveis */
+    MAX_DPR:        3,   /* densidade máxima de renderização */
+    MAX_CANVAS_PIXELS: 8294400, /* limita memória em tablets e telas grandes */
     PARALLAX_MAX: 32,   /* px de deslocamento máximo das camadas HTML */
     GYRO_SENS_AZ: 2.4,  /* sensibilidade: graus de gamma → graus de azimute */
-    GYRO_SENS_EL: 0.55, /* sensibilidade: graus de beta  → graus de elevação */
+    GYRO_DEADZONE_EL: 10, /* ignora pequenas oscilações involuntárias do aparelho */
+    GYRO_MAX_EL: 85, /* faixa útil do olhar, sem permitir atravessar os polos */
     MOUSE_SENS:   0.40, /* sensibilidade do arrastar de mouse */
     LERP_AZ:      0.07, /* suavização exponencial do azimute */
     LERP_EL:      0.10,
@@ -55,6 +58,10 @@
     html.classList.add("has-skymap");
 
     var ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
+    }
     var W = 0, H = 0;
     var zoom = 1.15;
     var fovH = CFG.FOV_H / zoom;
@@ -74,7 +81,9 @@
     function resize() {
       W = window.innerWidth;
       H = window.innerHeight;
-      var dpr = Math.min(window.devicePixelRatio || 1, 3);
+      var requestedDpr = Math.min(window.devicePixelRatio || 1, CFG.MAX_DPR);
+      var pixelBudgetDpr = Math.sqrt(CFG.MAX_CANVAS_PIXELS / Math.max(1, W * H));
+      var dpr = Math.max(1, Math.min(requestedDpr, pixelBudgetDpr));
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       canvas.style.width = W + "px";
@@ -599,6 +608,8 @@
       document.documentElement.style.setProperty("--scene-zoom", zoom.toFixed(2));
       document.documentElement.style.setProperty("--sky-pan-x", (-angleDiff(az, 180) / fovH * W).toFixed(1) + "px");
       document.documentElement.style.setProperty("--sky-pan-y", (el / fovV * H).toFixed(1) + "px");
+      /* Keep clouds and weather layers within the sky visible to the camera. */
+      document.documentElement.style.setProperty("--sky-h", Math.max(4, Math.min(96, getGroundFrac() * 100)).toFixed(2) + "%");
       /* Posição do pé do mastro embutido no panorama. O artwork diurno e
          noturno tem enquadramentos ligeiramente diferentes no mesmo telhado. */
       var isNightPanorama = html.getAttribute("data-scene-time") === "night";
@@ -680,15 +691,19 @@
       if (heading !== null && isFinite(heading)) rawAz = ((heading % 360) + 360) % 360;
       else rawAz = ((172.8 + dG * CFG.GYRO_SENS_AZ) % 360 + 360) % 360;
 
-      /* Elevação: seguir a inclinação da tela de forma natural.
-         Com a tela voltada para cima (aparelho apoiado na mesa), inclinar
-         a frente para baixo deve baixar a vista, e não elevá-la. */
-      rawEl = Math.max(-85, Math.min(85, dB * CFG.GYRO_SENS_EL));
+      /* Curva de elevação com zona morta e ganho progressivo: reduz tremor
+         perto da calibração e exige inclinação deliberada para erguer a vista.
+         Inclinar o aparelho até a vertical ainda permite alcançar o zênite. */
+      var pitchMagnitude = Math.max(0, Math.abs(dB) - CFG.GYRO_DEADZONE_EL);
+      var pitchRange = Math.max(1, 90 - CFG.GYRO_DEADZONE_EL);
+      var pitchT = Math.min(1, pitchMagnitude / pitchRange);
+      var pitch = CFG.GYRO_MAX_EL * pitchT * pitchT;
+      rawEl = (dB < 0 ? -1 : 1) * pitch;
 
       /* Paralaxe das camadas HTML */
       var norm = CFG.PARALLAX_MAX;
       rawParX = -dG / 45 * norm;
-      rawParY = dB / 45 * norm * 0.6;
+      rawParY = rawEl / CFG.GYRO_MAX_EL * norm * 0.6;
 
       if (!hasGyro) {
         hasGyro = true;
