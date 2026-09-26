@@ -65,7 +65,7 @@
 
     var ctx = canvas.getContext("2d");
     var W = 0, H = 0;
-    var zoom = 1.08;
+    var zoom = 1.25;
     var fovH = CFG.FOV_H / zoom;
     var fovV = CFG.FOV_V / zoom;
 
@@ -731,7 +731,7 @@
       if (e.key === "ArrowDown")  { rawEl = Math.max(-45, rawEl - step * 0.5); }
       if (e.key === "+" || e.key === "=") { zoom = Math.min(2.2, zoom + 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
       if (e.key === "-") { zoom = Math.max(1, zoom - 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
-      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1.08; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; baseB = null; baseG = null; }
+      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1.25; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; baseB = null; baseG = null; }
     });
 
     /* -----------------------------------------------------------------------
@@ -742,9 +742,9 @@
       getElevation: function () { return el; },
       setAzimuth:   function (a) { rawAz = ((a % 360) + 360) % 360; },
       setElevation: function (e) { rawEl = Math.max(-45, Math.min(45, e)); },
-      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1.08; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; },
+      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1.25; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; },
       getZoom:      function () { return zoom; },
-      setZoom:      function (value) { zoom = Math.max(1, Math.min(2.2, Number(value) || 1.08)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      setZoom:      function (value) { zoom = Math.max(1, Math.min(2.2, Number(value) || 1.25)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     };
   }
 

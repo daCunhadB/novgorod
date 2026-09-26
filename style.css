@@ -1272,6 +1272,29 @@ html.light .section-title {
   transition: opacity var(--dur-2) var(--ease-royal);
 }
 
+/* A bandeira substitui o selo circular e assume o destaque principal da home. */
+.home-flag {
+  position: relative;
+  width: clamp(5.5rem, 5rem + 3vw, 8rem);
+  aspect-ratio: 1800 / 1277;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: 0 14px 34px rgba(5, 10, 24, .34), 0 0 30px rgba(240, 194, 104, .2);
+  filter: drop-shadow(0 0 12px rgba(239, 200, 128, .24));
+}
+.home-flag::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.26) 48%, transparent 71%);
+  transform: translateX(-120%); animation: home-flag-sheen 8s ease-in-out infinite;
+}
+.home-flag img { display: block; width: 100%; height: 100%; object-fit: contain; animation: home-flag-billow 6s ease-in-out infinite; }
+.home-flag--empty { box-shadow: none; filter: none; background: transparent; }
+.home-flag--empty::after { display: none; }
+@keyframes home-flag-billow { 0%,100% { transform: perspective(600px) rotateY(-2deg) scaleX(.99); } 50% { transform: perspective(600px) rotateY(2deg) scaleX(1); } }
+@keyframes home-flag-sheen { 0%,25% { transform: translateX(-120%); opacity: 0; } 42% { opacity: .9; } 68%,100% { transform: translateX(120%); opacity: 0; } }
+
 .hero h1 {
   font-size: var(--fs-hero);
   line-height: 1.15;
@@ -2694,14 +2717,20 @@ html[data-weather="storm"] .scene__glass-drops { opacity: var(--rain-glass-opaci
   background: radial-gradient(ellipse at 33% 28%, rgba(255,255,255,.9), rgba(188,224,255,.2) 34%, rgba(115,169,210,.06) 68%, transparent 74%);
   border: 1px solid rgba(235,248,255,.28);
   box-shadow: inset -1px -2px 3px rgba(255,255,255,.23), 0 0 5px rgba(202,230,255,.16);
-  transform: translate3d(var(--glass-drift-x, 0px), var(--glass-drift-y, 0px), 0);
-  animation: glass-run var(--glass-drop-duration, 13s) ease-in-out var(--drop-delay) infinite alternate;
+  filter: blur(var(--drop-blur, 0px));
+  transform: translate3d(var(--glass-pos-x, 0px), var(--glass-pos-y, 0px), 0);
   opacity: var(--glass-drop-opacity, .42);
-  transition: transform 1.5s ease, opacity 1.5s ease;
+  transition: transform var(--glass-drop-duration, 8s) cubic-bezier(.18,.72,.26,1), opacity 1.5s ease;
+}
+.scene__glass-drops i::before {
+  content: ""; position: absolute; left: 17%; top: 12%; width: 34%; height: 38%;
+  border-radius: 60% 45% 55% 42%; transform: rotate(18deg);
+  background: linear-gradient(150deg, rgba(255,255,255,.95), rgba(240,250,255,.08));
+  filter: blur(.25px); opacity: .85;
 }
 @keyframes glass-run {
   from { translate: 0 0; }
-  to { translate: 8px 34px; }
+  to { translate: var(--glass-end-x, 4px) var(--glass-end-y, 28px); }
 }
 
 .scene__lightning {
@@ -2820,6 +2849,7 @@ html[data-weather="storm"] .scene__splash::before {
 @media (prefers-reduced-motion: reduce) {
   .scene__splash, .scene__splash::before, .scene__splash::after,
   .scene__glass-drops i b { animation: none !important; }
+  .home-flag img, .home-flag::after { animation: none !important; }
 }
 
 /* Queda de neve por profundidade, turbulência do vento e cobertura acumulada. */

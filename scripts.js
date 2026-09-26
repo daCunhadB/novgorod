@@ -109,6 +109,9 @@
     var snowCover = 0;
     var lastSnowUpdate = Date.now();
     var glassAccumTick = 0;
+    var glassGravityX = 0;
+    var glassGravityY = .55;
+    var lastGlassTiltUpdate = 0;
     var particleMode = null;
     var particleKey = null;
     var screenFace = "unknown";
@@ -269,9 +272,23 @@
       var bead = document.createElement("i");
       bead.style.setProperty("--x", (3 + Math.random() * 94).toFixed(2) + "%");
       bead.style.setProperty("--y", (8 + Math.random() * 82).toFixed(2) + "%");
-      bead.style.setProperty("--drop-size", (isStorm ? 8 + Math.random() * (14 + intensity * 24) : 3 + Math.random() * (7 + intensity * 17)).toFixed(1) + "px");
+      var depth = .66 + Math.random() * .78;
+      var baseSize = isStorm ? 3 + Math.random() * (6 + intensity * 9) : 2 + Math.random() * (4 + intensity * 6);
+      var size = baseSize * depth;
+      var mass = clamp(size / 9, .28, 2.1);
+      var duration = clamp(17 - mass * 5.2 - intensity * (isStorm ? 2.8 : 1.6), 3.8, 16);
+      bead.style.setProperty("--drop-size", size.toFixed(1) + "px");
+      bead.dataset.waterMass = mass.toFixed(3);
       bead.style.setProperty("--drop-delay", (-Math.random() * 12).toFixed(1) + "s");
-      bead.style.setProperty("--trail-length", (12 + Math.random() * (isStorm ? 44 : 25)).toFixed(1) + "px");
+      bead.style.setProperty("--trail-length", (5 + mass * (isStorm ? 17 : 12)).toFixed(1) + "px");
+      bead.style.setProperty("--glass-drop-duration", duration.toFixed(2) + "s");
+      bead.style.setProperty("--glass-drop-opacity", clamp(.32 + depth * .36, .38, .9).toFixed(2));
+      bead.style.setProperty("--drop-blur", Math.max(0, 1.35 - depth).toFixed(2) + "px");
+      bead.style.setProperty("--glass-end-x", (glassGravityX * (10 + mass * 15)).toFixed(1) + "px");
+      bead.style.setProperty("--glass-end-y", (glassGravityY * (16 + mass * 27)).toFixed(1) + "px");
+      bead.style.setProperty("--glass-pos-x", "0px");
+      bead.style.setProperty("--glass-pos-y", "0px");
+      bead.style.zIndex = String(Math.round(depth * 10));
       var trail = document.createElement("b");
       bead.appendChild(trail);
       glassDrops.appendChild(bead);
@@ -826,11 +843,22 @@
       html.setAttribute("data-screen-face", screenFace);
       scene.style.setProperty("--glass-tilt-x", clamp(gamma / 45, -1, 1).toFixed(3));
       scene.style.setProperty("--glass-tilt-y", clamp(beta / 90, -1, 1).toFixed(3));
+      glassGravityX = clamp(gamma / 60, -1, 1);
+      glassGravityY = clamp(beta / 90, -1, 1);
       scene.style.setProperty("--glass-drift-x", (gamma * 1.1).toFixed(1) + "px");
       scene.style.setProperty("--glass-drift-y", (beta * 0.8).toFixed(1) + "px");
       scene.style.setProperty("--glass-drop-duration", screenFace === "up" ? "34s" : screenFace === "down" ? "4.5s" : clamp(18 - tilt * .16, 5, 18).toFixed(1) + "s");
       scene.style.setProperty("--glass-drop-opacity", screenFace === "up" ? (.68 + screenAccumulation * .3).toFixed(2) : screenFace === "down" ? ".5" : ".72");
       scene.style.setProperty("--glass-flatness", screenFace === "up" ? "1" : "0");
+      var tiltNow = Date.now();
+      if (tiltNow - lastGlassTiltUpdate > 100) {
+        lastGlassTiltUpdate = tiltNow;
+        Array.prototype.forEach.call(glassDrops.children, function (drop) {
+          var mass = Number(drop.dataset.waterMass) || .5;
+          drop.style.setProperty("--glass-pos-x", (glassGravityX * (10 + mass * 15)).toFixed(1) + "px");
+          drop.style.setProperty("--glass-pos-y", (glassGravityY * (16 + mass * 27)).toFixed(1) + "px");
+        });
+      }
     }, { passive: true });
 
     window.addEventListener("devicemotion", function (evt) {
