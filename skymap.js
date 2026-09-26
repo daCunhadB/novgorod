@@ -606,10 +606,17 @@
       var flagImageY = isNightPanorama ? 304 : 294;
       var castleElevation = (.38 - flagImageY / 887) * 180;
       var castleAzimuth = 180 + (flagImageX - 887) / 1774 * 360;
-      var castleX = W * .5 + angleDiff(castleAzimuth, az) / fovH * W - parX;
-      var castleY = H * .5 - (castleElevation - el) / fovV * H - parY;
+      /* drawPanorama shifts image pixels by +parX/+parY on screen; use the
+         same sign here so the HTML flag stays registered to the castle. */
+      var castleX = W * .5 + angleDiff(castleAzimuth, az) / fovH * W + parX;
+      var castleY = H * .5 - (castleElevation - el) / fovV * H + parY;
       document.documentElement.style.setProperty("--mast-anchor-x", castleX.toFixed(1) + "px");
       document.documentElement.style.setProperty("--mast-anchor-y", castleY.toFixed(1) + "px");
+      /* Scale the DOM cloth by the panorama's current projection. This keeps
+         its size locked to the photographed pennant while zoom/FOV changes. */
+      var sourcePanoramaWidth = 1774 * fovH / 360;
+      var flagWidth = 22.5 * W / sourcePanoramaWidth;
+      document.documentElement.style.setProperty("--mast-flag-width", flagWidth.toFixed(2) + "px");
       var mast = document.querySelector(".scene__mast");
       if (mast) mast.style.visibility = Math.abs(angleDiff(castleAzimuth, az)) <= fovH * .5 + 5 && castleElevation >= el - fovV * .5 - 5 && castleElevation <= el + fovV * .5 + 5 ? "visible" : "hidden";
 

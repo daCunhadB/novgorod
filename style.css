@@ -1005,13 +1005,13 @@ html.fx-full .scene__flag-frame--4 {
 @keyframes flag-sway {
   0%,
   100% {
-    transform: rotate(-0.9deg) translate3d(0, 0, 0);
+    transform: rotate(-0.9deg);
   }
   35% {
-    transform: rotate(0.7deg) translate3d(0, calc(var(--flag-h) * -0.012), 0);
+    transform: rotate(0.7deg);
   }
   70% {
-    transform: rotate(-0.25deg) translate3d(0, calc(var(--flag-h) * 0.012), 0);
+    transform: rotate(-0.25deg);
   }
 }
 
@@ -2688,7 +2688,7 @@ html.has-skymap .scene__mast {
 }
 html.has-skymap .scene__mast::before { display: none !important; }
 html.has-skymap .scene__mast {
-  --flag-w: clamp(42px, 5vw, 180px);
+  --flag-w: var(--mast-flag-width, clamp(46px, 5.4vw, 190px));
   --flag-h: calc(var(--flag-w) * 0.709);
 }
 html.has-skymap .scene__flag-stage {
@@ -2702,6 +2702,16 @@ html.has-skymap .scene__flag-stage {
   transform-origin: 0% 100%;
   animation: flag-sway 9s ease-in-out infinite;
   animation-duration: calc(9s / var(--wind, 1));
+}
+html.has-skymap .scene__flag-stage::before {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0 auto 0 0;
+  width: clamp(2px, .16vw, 4px);
+  background: linear-gradient(90deg, rgba(28, 17, 16, .76), rgba(238, 194, 112, .62), rgba(58, 28, 20, .5));
+  box-shadow: 1px 0 3px rgba(24, 14, 12, .5);
+  pointer-events: none;
 }
 
 
