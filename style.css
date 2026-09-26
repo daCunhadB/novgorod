@@ -2631,11 +2631,19 @@ html[data-scene-time="day"] .scene__palace-lights {
 /* Panorama enviado: troca automática guiada pelo horário astronômico local. */
 .scene {
   background-image: url("./assets/cena-dia.png");
-  background-size: var(--scene-image-width, cover) auto;
+  background-size: var(--scene-image-width, max(100vw, 200vh)) auto;
   background-position: calc(50% - var(--gyro-x, 0px)) calc(50% - var(--gyro-y, 0px));
   background-repeat: no-repeat;
 }
 html[data-scene-time="night"] .scene { background-image: url("./assets/cena-noite.png"); }
+/* Só o index transfere o panorama ao canvas; artigos mantêm seu fundo CSS. */
+html.has-skymap .scene { background-image: none !important; background-color: transparent !important; }
+html.has-skymap .scene__clouds { left: var(--sky-pan-x, 0px) !important; margin-top: var(--sky-pan-y, 0px); }
+#skyCanvas { filter: saturate(1.08) contrast(1.035); }
+html[data-weather="rain"] #skyCanvas { filter: saturate(1.14) contrast(1.06) brightness(.96); }
+html[data-weather="storm"] #skyCanvas { filter: saturate(1.2) contrast(1.12) brightness(.72) hue-rotate(8deg); }
+html[data-weather="snow"] #skyCanvas { filter: saturate(.84) brightness(1.06) contrast(1.04); }
+html[data-weather="drought"] #skyCanvas { filter: saturate(1.18) sepia(.12) contrast(1.08) brightness(1.02); }
 .scene__haze { display: none !important; }
 .scene__weather-haze { mix-blend-mode: soft-light; }
 .scene__rain.is-snow span {

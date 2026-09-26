@@ -93,8 +93,9 @@
        • astronomia local calculada no cliente para posição aparente do
          Sol/Lua, fase lunar, escala visual e direção da luz.
 
-     Sem permissão/rede, o site cai silenciosamente no modelo local anterior.
-     O modo manual continua disponível para demonstração dos fenômenos.
+     Sem permissão/rede, não inventa condições meteorológicas: mantém céu
+     limpo e hora local, informando que a sincronização não está disponível.
+     O modo manual continua disponível durante a sessão para demonstração.
      ------------------------------------------------------------------ */
   (function initAtmosphere() {
     var scene = document.querySelector(".scene");
@@ -128,7 +129,6 @@
     var weatherDetails = document.getElementById("weatherDetails");
     var orb = scene.querySelector(".scene__orb");
 
-    var WEATHER_KEY = "novgorod-weather-mode";
     var manualMode = "auto";
     var autoState = "clear";
     var lightningTimer = null;
@@ -633,7 +633,7 @@
         drought: "Seca · ar quente · poeira e miragem moduladas por temperatura, umidade e vento"
       };
       var timeLabel = html.getAttribute("data-scene-time") === "day" ? "Dia" : "Noite";
-      var sourceLabel = weatherState.source === "live" ? "dados locais em tempo real" : "modelo local de fallback";
+      var sourceLabel = weatherState.source === "live" ? "meteorologia atual do Open-Meteo · localização do aparelho" : "meteorologia ao vivo indisponível · céu neutro";
       setReadout(timeLabel + " · " + labels[mode], sourceLabel);
       scheduleLightning(mode);
       updateOrbAndLight();
@@ -654,12 +654,7 @@
     }
 
     function chooseFallbackWeather() {
-      var hour = localNow().getHours() + localNow().getMinutes() / 60;
-      var wave = (Math.sin(Date.now() / 120000) + 1) / 2;
-      if (hour >= 11 && hour <= 16 && wave > .76) return "drought";
-      if (wave > .88) return "storm";
-      if (wave > .64) return "rain";
-      if (wave > .40) return "cloudy";
+      /* Sem dados meteorológicos reais, o automático não simula chuva/neve. */
       return "clear";
     }
 
@@ -677,7 +672,7 @@
       } else {
         applyLightAndWeather(manualMode);
       }
-      setLocationStatus(isSecureGeoContext() ? "Aguardando permissão de localização…" : "Geolocalização exige HTTPS (ou localhost). Usando fallback.");
+      setLocationStatus(isSecureGeoContext() ? "Clima local indisponível; aguardando dados meteorológicos…" : "Geolocalização exige HTTPS (ou localhost). Clima ao vivo indisponível.");
     }
 
     function scheduleLightning(mode) {
@@ -806,11 +801,8 @@
 
     html.setAttribute("data-weather", "clear");
     makeParticles(true);
-    try {
-      var savedMode = localStorage.getItem(WEATHER_KEY);
-      if (savedMode && ["auto","clear","cloudy","rain","snow","storm","drought"].indexOf(savedMode) >= 0) manualMode = savedMode;
-    } catch (err) {}
-    if (weatherMode) weatherMode.value = manualMode;
+    /* Sempre inicia em automático; escolhas de demonstração não persistem. */
+    if (weatherMode) weatherMode.value = "auto";
 
     if (weatherToggle && weatherPanel) {
       weatherToggle.addEventListener("click", function () {
@@ -824,7 +816,6 @@
     if (weatherMode) {
       weatherMode.addEventListener("change", function () {
         manualMode = weatherMode.value;
-        try { localStorage.setItem(WEATHER_KEY, manualMode); } catch (err) {}
         syncThemeLighting();
       });
     }
