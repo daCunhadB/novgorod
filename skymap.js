@@ -65,9 +65,9 @@
 
     var ctx = canvas.getContext("2d");
     var W = 0, H = 0;
-    var zoom = 1;
-    var fovH = CFG.FOV_H;
-    var fovV = CFG.FOV_V;
+    var zoom = 1.08;
+    var fovH = CFG.FOV_H / zoom;
+    var fovV = CFG.FOV_V / zoom;
 
     /* --- Resize ------------------------------------------------------------ */
     function resize() {
@@ -310,9 +310,9 @@
         if (pt.y > groundY - 4) return;
 
         /* Tamanho inversamente proporcional à magnitude */
-        var size = Math.max(0.5, (6 - s.mag) * 0.38);
+        var size = Math.max(0.65, (6 - s.mag) * 0.42);
         /* Cintilação */
-        var twinkle = 0.7 + 0.3 * Math.sin(t * s.twinkleSpeed + s.twinkle);
+        var twinkle = 0.58 + 0.42 * Math.sin(t * s.twinkleSpeed + s.twinkle);
         var alpha = Math.min(1, (6 - s.mag) / 5.5) * twinkle * fade;
 
         ctx.save();
@@ -331,6 +331,15 @@
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, size, 0, Math.PI*2);
         ctx.fill();
+        /* Pequena dispersão luminosa nas estrelas mais brilhantes. */
+        if (s.mag < 1.4) {
+          ctx.strokeStyle = rgbStr([s.r,s.g,s.b], alpha * 0.34);
+          ctx.lineWidth = Math.max(0.6, size * 0.28);
+          ctx.beginPath();
+          ctx.moveTo(pt.x - size * 2.4, pt.y); ctx.lineTo(pt.x + size * 2.4, pt.y);
+          ctx.moveTo(pt.x, pt.y - size * 2.4); ctx.lineTo(pt.x, pt.y + size * 2.4);
+          ctx.stroke();
+        }
         ctx.restore();
       });
     }
@@ -539,7 +548,13 @@
       document.documentElement.style.setProperty("--gyro-x", parX.toFixed(2) + "px");
       document.documentElement.style.setProperty("--gyro-y", parY.toFixed(2) + "px");
       document.documentElement.style.setProperty("--scene-zoom", zoom.toFixed(2));
-      document.documentElement.style.setProperty("--scene-image-size", (125 * zoom).toFixed(0) + "%");
+      /* Imagem 1774×887: escala uniforme (sem deformar) e recorte cover. */
+      var imageWidth = Math.max(W, H * (1774 / 887)) * zoom;
+      var imageHeight = imageWidth * (887 / 1774);
+      document.documentElement.style.setProperty("--scene-image-width", imageWidth.toFixed(1) + "px");
+      /* Castelo e bandeira usam o mesmo recorte, zoom e paralaxe do fundo. */
+      document.documentElement.style.setProperty("--mast-anchor-x", (W * .5 + (0.48 - .5) * imageWidth - parX).toFixed(1) + "px");
+      document.documentElement.style.setProperty("--mast-anchor-y", (H * .5 + (0.235 - .5) * imageHeight - parY).toFixed(1) + "px");
 
       var t = now * 0.001;   /* tempo em segundos */
       var p = getPalette();
@@ -658,7 +673,7 @@
 
     function onWheel(e) {
       if (e.shiftKey) rawEl = Math.max(-45, Math.min(45, rawEl - e.deltaY * 0.05));
-      else { zoom = Math.max(0.8, Math.min(2.2, zoom + (e.deltaY < 0 ? 0.08 : -0.08))); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      else { zoom = Math.max(1, Math.min(2.2, zoom + (e.deltaY < 0 ? 0.08 : -0.08))); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     }
 
     var skyCnv = canvas;
@@ -696,7 +711,7 @@
         var px = e.touches[0].clientX - e.touches[1].clientX;
         var py = e.touches[0].clientY - e.touches[1].clientY;
         var pinchNow = Math.sqrt(px * px + py * py);
-        if (pinchStart > 0) { zoom = Math.max(0.8, Math.min(2.2, pinchZoom * pinchNow / pinchStart)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+        if (pinchStart > 0) { zoom = Math.max(1, Math.min(2.2, pinchZoom * pinchNow / pinchStart)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
         return;
       }
       var dx = e.touches[0].clientX - touchStartX;
@@ -715,8 +730,8 @@
       if (e.key === "ArrowUp")    { rawEl = Math.min(45, rawEl + step * 0.5); }
       if (e.key === "ArrowDown")  { rawEl = Math.max(-45, rawEl - step * 0.5); }
       if (e.key === "+" || e.key === "=") { zoom = Math.min(2.2, zoom + 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
-      if (e.key === "-") { zoom = Math.max(0.8, zoom - 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
-      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1; fovH = CFG.FOV_H; fovV = CFG.FOV_V; baseB = null; baseG = null; }
+      if (e.key === "-") { zoom = Math.max(1, zoom - 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1.08; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; baseB = null; baseG = null; }
     });
 
     /* -----------------------------------------------------------------------
@@ -727,9 +742,9 @@
       getElevation: function () { return el; },
       setAzimuth:   function (a) { rawAz = ((a % 360) + 360) % 360; },
       setElevation: function (e) { rawEl = Math.max(-45, Math.min(45, e)); },
-      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1; fovH = CFG.FOV_H; fovV = CFG.FOV_V; },
+      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1.08; fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; },
       getZoom:      function () { return zoom; },
-      setZoom:      function (value) { zoom = Math.max(0.8, Math.min(2.2, Number(value) || 1)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      setZoom:      function (value) { zoom = Math.max(1, Math.min(2.2, Number(value) || 1.08)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     };
   }
 

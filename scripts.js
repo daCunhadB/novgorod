@@ -460,8 +460,8 @@
       if (!astro) astro = { altitude: isDay ? 55 : 30, azimuth: isDay ? 140 : 40 };
 
       var altitudeNorm = clamp((astro.altitude + 8) / 68, 0, 1);
-      var size = 58 + altitudeNorm * 39;
-      if (!isDay && weatherState.current && weatherState.current.cloud_cover > 80) size *= 0.92;
+      /* Escala visual fixa: a fase altera só a iluminação, nunca o tamanho. */
+      var size = 82;
       var az = normalizeDeg(astro.azimuth);
       var x = 50 + Math.sin(rad(az)) * 34;
       var y = 12 + (1 - altitudeNorm) * 34;
@@ -602,7 +602,7 @@
       scene.style.setProperty("--weather-wind-factor", speedFactor.toFixed(3));
       scene.style.setProperty("--wind-bearing", direction.toFixed(1) + "deg");
       scene.style.setProperty("--wind-angle", normalizeDeg(direction + 180).toFixed(1) + "deg");
-      scene.style.setProperty("--cloud-animation-direction", Math.sin(rad(direction)) >= 0 ? "normal" : "reverse");
+      scene.style.setProperty("--weather-cloud-direction", Math.sin(rad(direction)) >= 0 ? "normal" : "reverse");
 
       html.setAttribute("data-weather", mode);
       makeParticles();
@@ -986,10 +986,17 @@
   var ticking = false;
 
   function writeWind() {
-    var liveFactor = window.NovgorodWeather && window.NovgorodWeather.getState ? (Number(window.NovgorodWeather.getState().current && window.NovgorodWeather.getState().current.wind_speed_10m) || 7) : 7;
+    var liveState = window.NovgorodWeather && window.NovgorodWeather.getState ? window.NovgorodWeather.getState() : null;
+    var liveCurrent = liveState && liveState.current || {};
+    var liveFactor = Number(liveCurrent.wind_speed_10m) || 7;
     weatherWindFactor = Math.max(0.65, Math.min(2.9, 0.58 + liveFactor / 22));
     html.style.setProperty("--wind", (wind * weatherWindFactor).toFixed(3));
     html.style.setProperty("--scroll-wind-boost", Math.max(0, wind - BREEZE).toFixed(3));
+    var metDirection = Number(liveCurrent.wind_direction_10m);
+    if (!isFinite(metDirection)) metDirection = 270;
+    var flow = Number(html.style.getPropertyValue("--scroll-flow-sign")) || 1;
+    var prevailing = Math.sin(metDirection * Math.PI / 180) >= 0 ? 1 : -1;
+    html.style.setProperty("--wind-tilt", ((wind * weatherWindFactor - BREEZE) * prevailing * flow * 0.5).toFixed(2) + "deg");
   }
 
   function updateOnScroll() {
@@ -1006,7 +1013,18 @@
     if (!prefersReducedMotion) {
       var now = performance.now();
       var dt = Math.max(16, now - lastTime);
-      var speed = Math.abs(scrollTop - lastScroll) / dt;    // px por ms
+      var delta = scrollTop - lastScroll;
+      var speed = Math.abs(delta) / dt;    // px por ms
+      if (Math.abs(delta) > 0.5) {
+        var flow = delta < 0 ? -1 : 1;
+        html.style.setProperty("--scroll-flow-sign", String(flow));
+        var liveState = window.NovgorodWeather && window.NovgorodWeather.getState ? window.NovgorodWeather.getState() : null;
+        var metDirection = Number(liveState && liveState.current && liveState.current.wind_direction_10m);
+        if (!isFinite(metDirection)) metDirection = 270;
+        var prevailing = Math.sin(metDirection * Math.PI / 180) >= 0 ? 1 : -1;
+        html.style.setProperty("--scroll-cloud-direction", prevailing * flow < 0 ? "reverse" : "normal");
+        html.style.setProperty("--scroll-flag-direction", flow < 0 ? "reverse" : "normal");
+      }
       lastScroll = scrollTop;
       lastTime = now;
 
