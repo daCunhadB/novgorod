@@ -112,7 +112,6 @@
     var glassAccumTick = 0;
     var glassGravityX = 0;
     var glassGravityY = .55;
-    var glassGravityMagnitude = .55;
     var lastGlassTiltUpdate = 0;
     var particleMode = null;
     var particleKey = null;
@@ -838,27 +837,16 @@
       if (!glassDrops || !evt) return;
       var beta = Number(evt.beta) || 0;
       var gamma = Number(evt.gamma) || 0;
-      var betaRad = rad(beta), gammaRad = rad(gamma);
-      var gx = Math.sin(gammaRad);
-      var gy = Math.sin(betaRad) * Math.cos(gammaRad);
-      var gz = -Math.cos(betaRad) * Math.cos(gammaRad);
-      var screenAngle = Number(window.screen && window.screen.orientation && window.screen.orientation.angle);
-      if (!isFinite(screenAngle)) screenAngle = Number(window.orientation) || 0;
-      var screenRad = rad(-screenAngle);
-      var screenX = gx * Math.cos(screenRad) - gy * Math.sin(screenRad);
-      var screenY = gx * Math.sin(screenRad) + gy * Math.cos(screenRad);
-      glassGravityX = clamp(screenX, -1, 1);
-      glassGravityY = clamp(screenY, -1, 1);
-      glassGravityMagnitude = clamp(Math.sqrt(glassGravityX * glassGravityX + glassGravityY * glassGravityY), 0, 1);
-      var tilt = Math.atan2(glassGravityMagnitude, Math.abs(gz)) * 180 / Math.PI;
-      screenFace = gz < -.72 && glassGravityMagnitude < .70 ? "up" : gz > .72 && glassGravityMagnitude < .70 ? "down" : "tilted";
+      var tilt = Math.sqrt(beta * beta + gamma * gamma);
+      if (screenFace === "unknown") screenFace = tilt < 18 ? "up" : "tilted";
       html.setAttribute("data-screen-face", screenFace);
-      html.setAttribute("data-glass-resting", String(screenFace === "up" && glassGravityMagnitude < .38));
-      scene.style.setProperty("--glass-tilt-x", glassGravityX.toFixed(3));
-      scene.style.setProperty("--glass-tilt-y", glassGravityY.toFixed(3));
-      scene.style.setProperty("--glass-drift-x", (glassGravityX * window.innerWidth * .12).toFixed(1) + "px");
-      scene.style.setProperty("--glass-drift-y", (glassGravityY * window.innerHeight * .16).toFixed(1) + "px");
-      scene.style.setProperty("--glass-drop-duration", clamp(12 / (.15 + glassGravityMagnitude), 3.5, 34).toFixed(1) + "s");
+      scene.style.setProperty("--glass-tilt-x", clamp(gamma / 45, -1, 1).toFixed(3));
+      scene.style.setProperty("--glass-tilt-y", clamp(beta / 90, -1, 1).toFixed(3));
+      glassGravityX = clamp(gamma / 60, -1, 1);
+      glassGravityY = clamp(beta / 90, -1, 1);
+      scene.style.setProperty("--glass-drift-x", (gamma * 1.1).toFixed(1) + "px");
+      scene.style.setProperty("--glass-drift-y", (beta * 0.8).toFixed(1) + "px");
+      scene.style.setProperty("--glass-drop-duration", screenFace === "up" ? "34s" : screenFace === "down" ? "4.5s" : clamp(18 - tilt * .16, 5, 18).toFixed(1) + "s");
       scene.style.setProperty("--glass-drop-opacity", screenFace === "up" ? (.68 + screenAccumulation * .3).toFixed(2) : screenFace === "down" ? ".5" : ".72");
       scene.style.setProperty("--glass-flatness", screenFace === "up" ? "1" : "0");
       var tiltNow = Date.now();
@@ -866,35 +854,29 @@
         lastGlassTiltUpdate = tiltNow;
         Array.prototype.forEach.call(glassDrops.children, function (drop) {
           var mass = Number(drop.dataset.waterMass) || .5;
-          var distance = .045 + Math.min(1.4, mass) * .035;
-          drop.style.setProperty("--glass-end-x", (glassGravityX * window.innerWidth * distance).toFixed(1) + "px");
-          drop.style.setProperty("--glass-end-y", (glassGravityY * window.innerHeight * distance).toFixed(1) + "px");
-          drop.style.setProperty("--glass-drop-duration", clamp(12 / (.15 + glassGravityMagnitude) / Math.sqrt(mass), 2.8, 34).toFixed(1) + "s");
+          drop.style.setProperty("--glass-pos-x", (glassGravityX * (10 + mass * 15)).toFixed(1) + "px");
+          drop.style.setProperty("--glass-pos-y", (glassGravityY * (16 + mass * 27)).toFixed(1) + "px");
         });
       }
     }, { passive: true });
 
     window.addEventListener("devicemotion", function (evt) {
       var gravity = evt && evt.accelerationIncludingGravity;
-      if (!gravity || typeof gravity.z !== "number") return;
-      if (Math.abs(gravity.z) < 5.5) screenFace = "tilted";
-      else screenFace = gravity.z < 0 ? "up" : "down";
+      if (!gravity || typeof gravity.z !== "number" || Math.abs(gravity.z) < 5.5) return;
+      screenFace = gravity.z < 0 ? "up" : "down";
       html.setAttribute("data-screen-face", screenFace);
-      html.setAttribute("data-glass-resting", String(screenFace === "up" && glassGravityMagnitude < .38));
     }, { passive: true });
 
     window.setInterval(function () {
       var rainOnGlass = html.getAttribute("data-weather") === "rain" || html.getAttribute("data-weather") === "storm";
-      if (rainOnGlass && screenFace === "up" && glassGravityMagnitude < .38) {
-        var activeIntensity = precipitationIntensity(html.getAttribute("data-weather"));
-        screenAccumulation = Math.min(1, screenAccumulation + .012 + activeIntensity * .035);
+      if (rainOnGlass && screenFace === "up") {
+        screenAccumulation = Math.min(1, screenAccumulation + .035);
         glassAccumTick++;
         if (glassAccumTick % 2 === 0 && glassDrops && glassDrops.childElementCount < (html.getAttribute("data-weather") === "storm" ? 220 : 130)) {
           appendGlassDrop(html.getAttribute("data-weather") === "storm", precipitationIntensity(html.getAttribute("data-weather")));
         }
       } else {
-        var runoff = screenFace === "down" ? .12 : .018 + glassGravityMagnitude * .055;
-        screenAccumulation = Math.max(0, screenAccumulation - runoff);
+        screenAccumulation = Math.max(0, screenAccumulation - (screenFace === "down" ? .06 : .018));
         glassAccumTick = 0;
       }
       scene.style.setProperty("--glass-accumulation", screenAccumulation.toFixed(3));
