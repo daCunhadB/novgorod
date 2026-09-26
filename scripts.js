@@ -101,7 +101,21 @@
     if (!scene) return;
 
     var rain = document.getElementById("sceneRain");
+    var rainFar = document.getElementById("sceneRainFar");
+    var rainNear = document.getElementById("sceneRainNear");
+    var glassDrops = document.getElementById("sceneGlassDrops");
+    var splashes = document.getElementById("sceneSplashes");
+    var snowGround = document.getElementById("sceneSnowGround");
+    var snowCover = 0;
+    var lastSnowUpdate = Date.now();
+    var glassAccumTick = 0;
+    var particleMode = null;
+    var particleKey = null;
+    var screenFace = "unknown";
+    var screenAccumulation = 0;
     var dust = document.getElementById("sceneDryDust");
+    var heatShimmer = document.getElementById("sceneHeatShimmer");
+    var aridGround = document.getElementById("sceneAridGround");
     var lightning = document.getElementById("sceneLightning");
     var weatherToggle = document.getElementById("weatherToggle");
     var weatherPanel = document.getElementById("weatherPanel");
@@ -130,6 +144,7 @@
       timezone: null,
       source: "simulado"
     };
+    var celestialState = { updatedAt: null, latitude: null, longitude: null, accuracy: null, sun: null, moon: null };
 
     function clamp(n, min, max) {
       return Math.max(min, Math.min(max, n));
@@ -186,21 +201,189 @@
       }
     }
 
-    function makeParticles() {
+    function precipitationIntensity(mode) {
+      var current = weatherState.current || {};
+      var amount = Math.max(0, Number(current.rain) || 0, Number(current.showers) || 0, Number(current.precipitation) || 0);
+      var intensity = clamp(Math.log1p(amount) / Math.log(16), 0, 1);
+      var code = Number(current.weather_code);
+      var byCode = { 51: .18, 53: .30, 55: .42, 56: .36, 57: .50, 61: .22, 63: .42, 65: .68, 66: .40, 67: .58, 80: .30, 81: .52, 82: .78, 95: .62, 96: .78, 99: .98 };
+      intensity = Math.max(intensity, byCode[code] || 0);
+      if (mode === "rain") intensity = Math.max(.18, intensity);
+      if (mode === "storm") intensity = Math.max(.32, intensity);
+      return clamp(intensity, 0, 1);
+    }
+
+    function cardinalBearing(azimuth) {
+      var directions = ["N", "NE", "L", "SE", "S", "SO", "O", "NO"];
+      return directions[Math.round(normalizeDeg(azimuth) / 45) % 8];
+    }
+
+    function droughtSeverity() {
+      var c = weatherState.current || {};
+      var temp = Number(c.temperature_2m);
+      var humidity = Number(c.relative_humidity_2m);
+      var radiation = Number(c.shortwave_radiation);
+      var clouds = Number(c.cloud_cover);
+      var precipitation = Math.max(Number(c.precipitation) || 0, Number(c.rain) || 0, Number(c.showers) || 0);
+      var heat = isFinite(temp) ? clamp((temp - 25) / 17, 0, 1) : .25;
+      var dryAir = isFinite(humidity) ? clamp((58 - humidity) / 58, 0, 1) : .35;
+      var sunLoad = isFinite(radiation) ? clamp(radiation / 820, 0, 1) : .35;
+      var clearFactor = isFinite(clouds) ? 1 - clamp(clouds / 85, 0, .75) : .6;
+      var noRain = 1 - clamp(precipitation / .45, 0, 1);
+      return clamp((heat * .38 + dryAir * .26 + sunLoad * .26 + clearFactor * .10) * noRain, 0, 1);
+    }
+
+    function snowfallIntensity() {
+      var current = weatherState.current || {};
+      var amount = Math.max(0, Number(current.snowfall) || 0);
+      var byCode = { 71: .24, 73: .48, 75: .86, 77: .32, 85: .42, 86: .8 };
+      return clamp(Math.max(Math.log1p(amount) / Math.log(4), byCode[Number(current.weather_code)] || 0), 0, 1);
+    }
+
+    function updateSnowCover(mode) {
+      var now = Date.now();
+      var elapsedMinutes = clamp((now - lastSnowUpdate) / 60000, 0, 5);
+      lastSnowUpdate = now;
+      var current = weatherState.current || {};
+      var temp = Number(current.temperature_2m);
+      var liveSnow = Math.max(0, Number(current.snowfall) || 0);
+      var snowCode = [71, 73, 75, 77, 85, 86].indexOf(Number(current.weather_code)) >= 0;
+      if (mode === "snow" && (weatherState.source !== "live" || liveSnow > 0 || snowCode)) {
+        var rate = weatherState.source === "live" ? Math.max(.18, snowfallIntensity()) : .42;
+        if (!isFinite(temp)) temp = -2;
+        if (temp <= 1.5) snowCover = Math.min(1, snowCover + elapsedMinutes * (.012 + rate * .045));
+      } else if (weatherState.source === "live" && isFinite(temp) && temp > 0.5) {
+        var solar = clamp((Number(current.shortwave_radiation) || 0) / 700, 0, 1);
+        snowCover = Math.max(0, snowCover - elapsedMinutes * (temp / 30 + solar * .025));
+      }
+      var depthVh = snowCover * 27;
+      if (snowGround) {
+        snowGround.style.setProperty("--snow-cover-height", depthVh.toFixed(2) + "vh");
+        snowGround.style.setProperty("--snow-cover-opacity", clamp(snowCover * .92, 0, .92).toFixed(3));
+        snowGround.style.setProperty("--snow-drift-opacity", clamp(.18 + snowCover * .7, .18, .88).toFixed(3));
+      }
+    }
+
+    function appendGlassDrop(isStorm, intensity) {
+      if (!glassDrops) return;
+      var bead = document.createElement("i");
+      bead.style.setProperty("--x", (3 + Math.random() * 94).toFixed(2) + "%");
+      bead.style.setProperty("--y", (8 + Math.random() * 82).toFixed(2) + "%");
+      bead.style.setProperty("--drop-size", (isStorm ? 8 + Math.random() * (14 + intensity * 24) : 3 + Math.random() * (7 + intensity * 17)).toFixed(1) + "px");
+      bead.style.setProperty("--drop-delay", (-Math.random() * 12).toFixed(1) + "s");
+      bead.style.setProperty("--trail-length", (12 + Math.random() * (isStorm ? 44 : 25)).toFixed(1) + "px");
+      var trail = document.createElement("b");
+      bead.appendChild(trail);
+      glassDrops.appendChild(bead);
+    }
+
+    function makeParticles(force) {
       if (!rain || !dust) return;
-      rain.textContent = "";
+      var mode = html.getAttribute("data-weather") || "clear";
+      var intensity = mode === "snow" ? snowfallIntensity() : (mode === "rain" || mode === "storm") ? precipitationIntensity(mode) : 0;
+      var dryIntensity = mode === "drought" ? droughtSeverity() : 0;
+      var bucket = Math.round((mode === "drought" ? dryIntensity : intensity) * 8);
+      var windBucket = Math.round((Number((weatherState.current || {}).wind_speed_10m) || 0) / 10);
+      var key = mode + ":" + bucket + ":" + windBucket;
+      if (!force && particleKey === key && rain.childElementCount) return;
+      particleMode = mode;
+      particleKey = key;
+      intensity = bucket / 8;
+      var isStorm = mode === "storm";
+      var isSnow = mode === "snow";
+      var isDrought = mode === "drought";
+      if (isDrought) intensity = dryIntensity;
+      /* Chuva mais densa, mantendo sua cortina claramente abaixo da tempestade. */
+      var density = isSnow ? .62 + intensity * 1.45 : (.42 + intensity * 1.18) * (isStorm ? 1.42 : mode === "rain" ? 1.18 : 1);
+      var windSpeed = Number((weatherState.current || {}).wind_speed_10m) || 7;
+      var fallRate = isSnow ? clamp(.58 + windSpeed / 24, .7, 2.4) : (1 + intensity * 1.45 + clamp(windSpeed / 100, 0, .5)) * (isStorm ? 1.28 : 1);
+      var windDirection = Number((weatherState.current || {}).wind_direction_10m);
+      if (!isFinite(windDirection)) windDirection = 270;
+      var snowDrift = Math.sin(rad(windDirection)) * clamp(windSpeed * .7, 8, 130);
+      scene.style.setProperty("--rain-intensity", intensity.toFixed(3));
+      scene.style.setProperty("--rain-layer-opacity", (.30 + intensity * .66).toFixed(3));
+      scene.style.setProperty("--rain-far-opacity", (.16 + intensity * .44).toFixed(3));
+      scene.style.setProperty("--rain-near-opacity", (.32 + intensity * .62).toFixed(3));
+      scene.style.setProperty("--rain-glass-opacity", (.20 + intensity * .76).toFixed(3));
+      scene.style.setProperty("--splash-opacity", (intensity * (isStorm ? .96 : .78)).toFixed(3));
+      scene.style.setProperty("--snow-drift", snowDrift.toFixed(1) + "px");
+      scene.style.setProperty("--dry-intensity", isDrought ? intensity.toFixed(3) : "0");
+      var dryWind = Number((weatherState.current || {}).wind_speed_10m) || 7;
+      scene.style.setProperty("--dry-wind", dryWind.toFixed(1));
+      if (heatShimmer) heatShimmer.style.setProperty("--heat-opacity", isDrought ? (.16 + intensity * .62).toFixed(3) : "0");
+      if (aridGround) aridGround.style.setProperty("--arid-opacity", isDrought ? (.08 + intensity * .33).toFixed(3) : "0");
+      scene.style.setProperty("--dry-dust-opacity", isDrought ? (.25 + intensity * .7).toFixed(3) : "0");
+      updateSnowCover(mode);
+      [rain, rainFar, rainNear].forEach(function (layer, layerIndex) {
+        if (!layer) return;
+        layer.textContent = "";
+        layer.classList.toggle("is-snow", mode === "snow");
+        var count = Math.round(rainCount * density * (layerIndex === 0 ? .72 : layerIndex === 2 ? .78 : 1));
+        for (var i = 0; i < count; i++) {
+          var drop = document.createElement("span");
+          var isSnow = mode === "snow";
+          var depth = layerIndex === 0 ? .52 : layerIndex === 2 ? 1.7 : 1;
+          var stormScale = isStorm ? 1.55 : 1;
+          drop.style.setProperty("--x", (Math.random() * 112 - 6).toFixed(2) + "%");
+          drop.style.setProperty("--w", ((Math.random() * 1.55 + .5) * depth * stormScale).toFixed(2) + "px");
+          drop.style.setProperty("--h", isSnow ? "auto" : ((Math.random() * 20 + 9) * depth * stormScale).toFixed(1) + "px");
+          if (isSnow) drop.style.setProperty("--size", ((Math.random() * 3.8 + 1.2) * Math.sqrt(depth) * (.82 + intensity * .42)).toFixed(1) + "px");
+          if (isSnow) drop.style.setProperty("--sway", (Math.random() * 70 - 35).toFixed(1) + "px");
+          if (isSnow) drop.style.setProperty("--spin", (Math.random() * 300 - 150).toFixed(1) + "deg");
+          drop.style.setProperty("--speed", ((Math.random() * 1.55 + .62) / (Math.sqrt(depth) * fallRate)).toFixed(2) + "s");
+          drop.style.setProperty("--delay", (-Math.random() * 4.5).toFixed(2) + "s");
+          drop.style.setProperty("--angle", (-8 - Math.random() * 15).toFixed(1) + "deg");
+          drop.style.setProperty("--drift", ((Math.random() * 90 + 35) * depth).toFixed(0) + "px");
+          drop.style.setProperty("--a", isSnow ? (layerIndex === 0 ? .45 : .56 + Math.random() * .4).toFixed(2) : (layerIndex === 0 ? .18 : clamp(.18 + intensity * .58 + Math.random() * .22, .18, .98)).toFixed(2));
+          layer.appendChild(drop);
+        }
+      });
+      if (glassDrops) {
+        glassDrops.textContent = "";
+        var glassCount = Math.round(isStorm ? 54 + intensity * 92 : 14 + intensity * 48);
+        for (var j = 0; j < glassCount; j++) appendGlassDrop(isStorm, intensity);
+      }
+      if (splashes) {
+        splashes.textContent = "";
+        var stormEquivalent = 30 + intensity * 150;
+        var splashCount = isStorm ? Math.round(stormEquivalent) : mode === "rain" ? Math.min(Math.round(12 + intensity * 92), Math.floor(stormEquivalent * .48)) : 0;
+        for (var k = 0; k < splashCount; k++) {
+          var impact = document.createElement("i");
+          impact.className = "scene__splash";
+          impact.style.setProperty("--x", (Math.random() * 100).toFixed(2) + "%");
+          impact.style.setProperty("--y", (47 + Math.random() * 49).toFixed(2) + "%");
+          impact.style.setProperty("--splash-size", (4 + Math.random() * (isStorm ? 17 : 11)).toFixed(1) + "px");
+          impact.style.setProperty("--splash-time", (Math.random() * 1.2 + .38).toFixed(2) + "s");
+          impact.style.setProperty("--splash-delay", (-Math.random() * 4).toFixed(2) + "s");
+          splashes.appendChild(impact);
+        }
+      }
       dust.textContent = "";
-      for (var i = 0; i < rainCount; i++) {
-        var drop = document.createElement("span");
-        drop.style.setProperty("--x", (Math.random() * 112 - 6).toFixed(2) + "%");
-        drop.style.setProperty("--w", (Math.random() * 1.55 + 0.5).toFixed(2) + "px");
-        drop.style.setProperty("--h", (Math.random() * 20 + 9).toFixed(1) + "px");
-        drop.style.setProperty("--speed", (Math.random() * 1.55 + 0.62).toFixed(2) + "s");
-        drop.style.setProperty("--delay", (-Math.random() * 4.5).toFixed(2) + "s");
-        drop.style.setProperty("--angle", (-10 - Math.random() * 10).toFixed(1) + "deg");
-        drop.style.setProperty("--drift", (Math.random() * 90 + 35).toFixed(0) + "px");
-        drop.style.setProperty("--a", (0.16 + Math.random() * 0.54).toFixed(2));
-        rain.appendChild(drop);
+      if (isDrought && dust) {
+        var motes = Math.round(18 + intensity * 68 + clamp(windSpeed / 30, 0, 2) * 12);
+        var driftSign = Math.sin(rad(windDirection)) >= 0 ? 1 : -1;
+        for (var m = 0; m < motes; m++) {
+          var mote = document.createElement("span");
+          var moteDepth = .4 + Math.random() * 1.6;
+          mote.style.setProperty("--x", (Math.random() * 110 - 5).toFixed(2) + "%");
+          mote.style.setProperty("--y", (42 + Math.random() * 64).toFixed(2) + "%");
+          mote.style.setProperty("--dust-size", (1 + Math.random() * 5 * moteDepth).toFixed(1) + "px");
+          mote.style.setProperty("--dust-duration", (7 + Math.random() * 18 / moteDepth / (1 + windSpeed / 35)).toFixed(1) + "s");
+          mote.style.setProperty("--dust-drift", (driftSign * (20 + windSpeed * 2.2) * moteDepth).toFixed(1) + "px");
+          mote.style.setProperty("--dust-delay", (-Math.random() * 18).toFixed(1) + "s");
+          mote.style.setProperty("--dust-alpha", (.12 + intensity * .36 + Math.random() * .24).toFixed(2));
+          dust.appendChild(mote);
+        }
+        var devils = Math.round(intensity * clamp(windSpeed / 22, .4, 2.4));
+        for (var d = 0; d < devils; d++) {
+          var devil = document.createElement("b");
+          devil.className = "scene__dust-devil";
+          devil.style.setProperty("--devil-x", (8 + Math.random() * 84).toFixed(1) + "%");
+          devil.style.setProperty("--devil-size", (20 + Math.random() * 42).toFixed(1) + "px");
+          devil.style.setProperty("--devil-duration", (8 + Math.random() * 8).toFixed(1) + "s");
+          devil.style.setProperty("--devil-delay", (-Math.random() * 12).toFixed(1) + "s");
+          dust.appendChild(devil);
+        }
       }
     }
 
@@ -270,7 +453,7 @@
       var sun = hasCoords ? sunPosition(date, weatherState.latitude, weatherState.longitude) : null;
       var moon = hasCoords ? moonPosition(date, weatherState.latitude, weatherState.longitude) : null;
       var current = weatherState.current || {};
-      var isDay = typeof current.is_day === "number" ? current.is_day === 1 : (sun ? sun.altitude > -0.35 : (date.getHours() >= 6 && date.getHours() < 18));
+      var isDay = sun ? sun.altitude > -0.35 : (typeof current.is_day === "number" ? current.is_day === 1 : (date.getHours() >= 6 && date.getHours() < 18));
       setSceneTime(isDay);
 
       var astro = isDay ? sun : moon;
@@ -297,9 +480,24 @@
       scene.style.setProperty("--shadow-strength", (0.16 + lightStrength * 0.34).toFixed(3));
 
       var phaseInfo = moonPhase(date);
+      var sunBearing = sun ? cardinalBearing(sun.azimuth) : null;
+      var moonBearing = moon ? cardinalBearing(moon.azimuth) : null;
+      celestialState = {
+        updatedAt: date.toISOString(), latitude: weatherState.latitude, longitude: weatherState.longitude,
+        accuracy: weatherState.accuracy,
+        sun: sun ? { azimuth: sun.azimuth, bearing: sunBearing, altitude: sun.altitude } : null,
+        moon: moon ? { azimuth: moon.azimuth, bearing: moonBearing, altitude: moon.altitude, phase: phaseInfo.phase, illumination: phaseInfo.illumination } : null
+      };
+      html.setAttribute("data-sun-bearing", sunBearing || "unknown");
+      html.setAttribute("data-moon-bearing", moonBearing || "unknown");
+      window.NovgorodAstronomy = { getState: function () { return celestialState; } };
       scene.style.setProperty("--moon-phase", phaseInfo.phase.toFixed(5));
       scene.style.setProperty("--moon-illumination", phaseInfo.illumination.toFixed(4));
       scene.style.setProperty("--moon-shadow-shift", ((0.5 - phaseInfo.phase) * 1.68).toFixed(4));
+      var solarAltitude = sun ? sun.altitude : (isDay ? 25 : -18);
+      var twilight = clamp(1 - Math.abs(solarAltitude - 1) / 12, 0, 1);
+      scene.style.setProperty("--astro-twilight", twilight.toFixed(3));
+      scene.style.setProperty("--astro-sky-tint", solarAltitude < -6 ? "rgba(80,104,190,.44)" : "rgba(255,132,72,.58)");
     }
 
     function setSky(p) {
@@ -345,10 +543,20 @@
         groundTint: "rgba(55,65,70,.24)", palace: isDay ? .56 : .20, palaceSat: .50, lights: isDay ? .18 : .94,
         bands: [.84, .97, .80]
       };
+      if (mode === "snow") return {
+        sky1: isDay ? "#89b8d8" : "#17243b", sky2: isDay ? "#b9d6e8" : "#35425a", sky3: isDay ? "#e2edf4" : "#707c8d", ground: isDay ? "#d9e7ec" : "#56616d",
+        cloud: .78, brightness: isDay ? .88 : .42, saturation: .56, contrast: 1.08, haze: .36,
+        groundTint: "rgba(205,226,240,.24)", palace: .82, palaceSat: .65, lights: isDay ? .04 : .78, bands: [.62, .8, .54]
+      };
+      if (mode === "drought") return {
+        sky1: isDay ? "#a95731" : "#201721", sky2: isDay ? "#d18143" : "#49303a", sky3: isDay ? "#efbd70" : "#9b6848", ground: isDay ? "#b9783d" : "#654537",
+        skyTint: isDay ? "rgba(255,153,61,.38)" : "rgba(177,94,60,.22)", cloud: .38, brightness: isDay ? 1.03 : .54, saturation: .88, contrast: 1.14, haze: .64,
+        groundTint: "rgba(222,139,59,.38)", palace: isDay ? 1.12 : .40, palaceSat: .92, lights: isDay ? 0 : .68, bands: [.32,.42,.18]
+      };
       if (mode === "storm") return {
-        sky1: "#080d1a", sky2: "#131e34", sky3: "#323b54", ground: "#2f303c",
+        sky1: "#1a0d2b", sky2: "#39204e", sky3: "#725c82", ground: "#342b43", skyTint: "rgba(154,72,208,.34)",
         cloud: .99, brightness: .17, saturation: .28, contrast: 1.28, haze: .58,
-        groundTint: "rgba(24,29,38,.38)", palace: .16, palaceSat: .35, lights: .99,
+        groundTint: "rgba(50,24,70,.42)", palace: .16, palaceSat: .35, lights: .99,
         bands: [.96, 1, .94]
       };
       return {
@@ -368,10 +576,16 @@
       scene.style.setProperty("--weather-cloud-contrast", preset.contrast);
       scene.style.setProperty("--weather-haze-opacity", preset.haze);
       scene.style.setProperty("--weather-ground-tint", preset.groundTint);
+      scene.style.setProperty("--weather-sky-tint", preset.skyTint || "rgba(180,205,255,.08)");
       scene.style.setProperty("--palace-brightness", preset.palace);
       scene.style.setProperty("--palace-saturation", preset.palaceSat);
       scene.style.setProperty("--palace-lights", preset.lights);
       scene.style.setProperty("--weather-vignette-opacity", mode === "storm" ? 1.14 : 1);
+      var dryLevel = mode === "drought" ? droughtSeverity() : 0;
+      scene.style.setProperty("--dry-intensity", dryLevel.toFixed(3));
+      scene.style.setProperty("--dry-dust-opacity", mode === "drought" ? (.25 + dryLevel * .7).toFixed(3) : "0");
+      if (heatShimmer) heatShimmer.style.setProperty("--heat-opacity", mode === "drought" ? (.16 + dryLevel * .62).toFixed(3) : "0");
+      if (aridGround) aridGround.style.setProperty("--arid-opacity", mode === "drought" ? (.08 + dryLevel * .33).toFixed(3) : "0");
 
       var cloudBands = scene.querySelectorAll(".scene__clouds");
       cloudBands.forEach(function (band, index) {
@@ -391,12 +605,15 @@
       scene.style.setProperty("--cloud-animation-direction", Math.sin(rad(direction)) >= 0 ? "normal" : "reverse");
 
       html.setAttribute("data-weather", mode);
+      makeParticles();
+      updateSnowCover(mode);
       var labels = {
         clear: "Céu limpo · luz direta · sombras definidas",
         cloudy: "Nublado · luz difusa · camadas de nuvens calibradas",
         rain: "Chuva · alta cobertura de nuvens · atmosfera úmida",
+        snow: "Neve · flocos em queda com deriva do vento",
         storm: "Tempestade · nuvens densas · relâmpagos intermitentes",
-        drought: "Seca · ar quente · horizonte seco e poeira em suspensão"
+        drought: "Seca · ar quente · poeira e miragem moduladas por temperatura, umidade e vento"
       };
       var timeLabel = html.getAttribute("data-scene-time") === "day" ? "Dia" : "Noite";
       var sourceLabel = weatherState.source === "live" ? "dados locais em tempo real" : "modelo local de fallback";
@@ -409,11 +626,12 @@
       var c = weatherState.current || {};
       var code = Number(c.weather_code);
       if ([95,96,99].indexOf(code) >= 0) return "storm";
-      if ([51,53,55,56,57,61,63,65,66,67,80,81,82,85,86].indexOf(code) >= 0 || Number(c.rain) > 0.2 || Number(c.showers) > 0.2) return "rain";
+      if ([71,73,75,77,85,86].indexOf(code) >= 0 || Number(c.snowfall) > 0) return "snow";
+      if ([51,53,55,56,57,61,63,65,66,67,80,81,82].indexOf(code) >= 0 || Number(c.rain) > 0.2 || Number(c.showers) > 0.2) return "rain";
       var cloud = Number(c.cloud_cover);
       var temp = Number(c.temperature_2m);
       if (cloud >= 88) return "cloudy";
-      if (typeof temp === "number" && temp >= 31 && cloud < 45 && Number(c.precipitation) < 0.1) return "drought";
+      if (isFinite(temp) && temp >= 28 && cloud < 65 && droughtSeverity() >= .48) return "drought";
       if (cloud >= 38 || [1,2,3,45,48].indexOf(code) >= 0) return "cloudy";
       return "clear";
     }
@@ -446,13 +664,16 @@
     }
 
     function scheduleLightning(mode) {
-      if (lightningTimer) {
-        clearTimeout(lightningTimer);
+      if (!lightning || prefersReducedMotion || mode !== "storm") {
+        if (lightningTimer !== null) clearTimeout(lightningTimer);
         lightningTimer = null;
+        return;
       }
-      if (!lightning || prefersReducedMotion || mode !== "storm") return;
+      if (lightningTimer !== null) return;
       var delay = 3600 + Math.random() * 9400;
       lightningTimer = setTimeout(function () {
+        lightningTimer = null;
+        lightning.style.setProperty("--bolt-x", (30 + Math.random() * 42).toFixed(1) + "%");
         lightning.classList.remove("is-flash");
         void lightning.offsetWidth;
         lightning.classList.add("is-flash");
@@ -474,7 +695,7 @@
         "&current=temperature_2m,relative_humidity_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day,visibility,shortwave_radiation,direct_radiation,diffuse_radiation" +
         "&daily=sunrise,sunset,daylight_duration" +
         "&forecast_days=1&timezone=auto";
-      setLocationStatus("Localização precisa obtida · atualizando meteorologia…");
+      setLocationStatus("Localização ±" + Math.round(Number(weatherState.accuracy) || 0) + " m · atualizando chuva e vento…");
       return fetch(url, { signal: fetchController.signal, headers: { "Accept": "application/json" } })
         .then(function (res) {
           if (!res.ok) throw new Error("weather-http-" + res.status);
@@ -493,12 +714,16 @@
           var temp = isFinite(Number(c.temperature_2m)) ? Number(c.temperature_2m).toFixed(1) + " °C" : "temperatura indisponível";
           var wind = isFinite(Number(c.wind_speed_10m)) ? Math.round(Number(c.wind_speed_10m)) + " km/h" : "vento indisponível";
           var cloud = isFinite(Number(c.cloud_cover)) ? Math.round(Number(c.cloud_cover)) + "% de nuvens" : "nuvens indisponíveis";
-          var precip = Number(c.precipitation) || 0;
+          var precip = Math.max(Number(c.precipitation) || 0, Number(c.rain) || 0, Number(c.showers) || 0);
+          var rainStrength = precipitationIntensity("auto");
+          var rainLabel = rainStrength >= .72 ? "chuva forte" : rainStrength >= .38 ? "chuva moderada" : rainStrength > 0 ? "chuva leve" : "sem chuva";
           var sunrise = d.sunrise && d.sunrise[0] ? formatTime(d.sunrise[0]) : "--:--";
           var sunset = d.sunset && d.sunset[0] ? formatTime(d.sunset[0]) : "--:--";
-          setLocationStatus("Localização precisa · ±" + Math.round(Number(weatherState.accuracy) || 0) + " m · atualização dinâmica");
-          setReadout((html.getAttribute("data-scene-time") === "day" ? "Dia" : "Noite") + " · " + (mode === "storm" ? "Tempestade" : mode === "rain" ? "Chuva" : mode === "cloudy" ? "Nublado" : mode === "drought" ? "Seca" : "Céu limpo"), "" + temp + " · " + wind + " · " + cloud + " · precipitação " + precip.toFixed(1) + " mm · nascer " + sunrise + " · pôr " + sunset);
+          setLocationStatus("Localização ±" + Math.round(Number(weatherState.accuracy) || 0) + " m · " + lat.toFixed(5) + ", " + lon.toFixed(5) + " · clima local atualizado");
           updateOrbAndLight();
+          var sunInfo = celestialState.sun ? "Sol " + celestialState.sun.bearing + " · alt. " + celestialState.sun.altitude.toFixed(1) + "°" : "Sol indisponível";
+          var moonInfo = celestialState.moon ? "Lua " + celestialState.moon.bearing + " · fase " + Math.round(celestialState.moon.illumination * 100) + "%" : "Lua indisponível";
+          setReadout((html.getAttribute("data-scene-time") === "day" ? "Dia" : "Noite") + " · " + (mode === "storm" ? "Tempestade" : mode === "rain" ? "Chuva" : mode === "snow" ? "Neve" : mode === "cloudy" ? "Nublado" : mode === "drought" ? "Seca" : "Céu limpo"), "" + temp + " · " + wind + " · " + cloud + " · precipitação " + precip.toFixed(1) + " mm · " + rainLabel + " · nascer " + sunrise + " · pôr " + sunset + " · " + sunInfo + " · " + moonInfo);
           return true;
         })
         .catch(function (err) {
@@ -517,7 +742,7 @@
       if (!isFinite(lat) || !isFinite(lon)) return;
       var moved = true;
       if (typeof weatherState.latitude === "number" && typeof weatherState.longitude === "number") {
-        moved = haversineKm(weatherState.latitude, weatherState.longitude, lat, lon) > 0.12;
+        moved = haversineKm(weatherState.latitude, weatherState.longitude, lat, lon) > 0.05;
       }
       weatherState.latitude = lat;
       weatherState.longitude = lon;
@@ -548,7 +773,7 @@
       try {
         locationWatchId = navigator.geolocation.watchPosition(onLocation, onLocationError, {
           enableHighAccuracy: true,
-          maximumAge: 60000,
+          maximumAge: 15000,
           timeout: 15000
         });
       } catch (err) {
@@ -562,10 +787,11 @@
       updateOrbAndLight();
     }
 
-    makeParticles();
+    html.setAttribute("data-weather", "clear");
+    makeParticles(true);
     try {
       var savedMode = localStorage.getItem(WEATHER_KEY);
-      if (savedMode && ["auto","clear","cloudy","rain","storm","drought"].indexOf(savedMode) >= 0) manualMode = savedMode;
+      if (savedMode && ["auto","clear","cloudy","rain","snow","storm","drought"].indexOf(savedMode) >= 0) manualMode = savedMode;
     } catch (err) {}
     if (weatherMode) weatherMode.value = manualMode;
 
@@ -588,18 +814,66 @@
 
     window.addEventListener("resize", function () {
       var nextCount = window.matchMedia("(max-width: 700px)").matches ? 50 : 88;
-      if (nextCount !== rainCount) { rainCount = nextCount; makeParticles(); }
+      if (nextCount !== rainCount) { rainCount = nextCount; makeParticles(true); }
     }, { passive: true });
+
+    window.addEventListener("deviceorientation", function (evt) {
+      if (!glassDrops || !evt) return;
+      var beta = Number(evt.beta) || 0;
+      var gamma = Number(evt.gamma) || 0;
+      var tilt = Math.sqrt(beta * beta + gamma * gamma);
+      if (screenFace === "unknown") screenFace = tilt < 18 ? "up" : "tilted";
+      html.setAttribute("data-screen-face", screenFace);
+      scene.style.setProperty("--glass-tilt-x", clamp(gamma / 45, -1, 1).toFixed(3));
+      scene.style.setProperty("--glass-tilt-y", clamp(beta / 90, -1, 1).toFixed(3));
+      scene.style.setProperty("--glass-drift-x", (gamma * 1.1).toFixed(1) + "px");
+      scene.style.setProperty("--glass-drift-y", (beta * 0.8).toFixed(1) + "px");
+      scene.style.setProperty("--glass-drop-duration", screenFace === "up" ? "34s" : screenFace === "down" ? "4.5s" : clamp(18 - tilt * .16, 5, 18).toFixed(1) + "s");
+      scene.style.setProperty("--glass-drop-opacity", screenFace === "up" ? (.68 + screenAccumulation * .3).toFixed(2) : screenFace === "down" ? ".5" : ".72");
+      scene.style.setProperty("--glass-flatness", screenFace === "up" ? "1" : "0");
+    }, { passive: true });
+
+    window.addEventListener("devicemotion", function (evt) {
+      var gravity = evt && evt.accelerationIncludingGravity;
+      if (!gravity || typeof gravity.z !== "number" || Math.abs(gravity.z) < 5.5) return;
+      screenFace = gravity.z < 0 ? "up" : "down";
+      html.setAttribute("data-screen-face", screenFace);
+    }, { passive: true });
+
+    window.setInterval(function () {
+      var rainOnGlass = html.getAttribute("data-weather") === "rain" || html.getAttribute("data-weather") === "storm";
+      if (rainOnGlass && screenFace === "up") {
+        screenAccumulation = Math.min(1, screenAccumulation + .035);
+        glassAccumTick++;
+        if (glassAccumTick % 2 === 0 && glassDrops && glassDrops.childElementCount < (html.getAttribute("data-weather") === "storm" ? 220 : 130)) {
+          appendGlassDrop(html.getAttribute("data-weather") === "storm", precipitationIntensity(html.getAttribute("data-weather")));
+        }
+      } else {
+        screenAccumulation = Math.max(0, screenAccumulation - (screenFace === "down" ? .06 : .018));
+        glassAccumTick = 0;
+      }
+      scene.style.setProperty("--glass-accumulation", screenAccumulation.toFixed(3));
+      scene.style.setProperty("--glass-drop-opacity", (screenFace === "up" ? .68 + screenAccumulation * .3 : screenFace === "down" ? .5 : .72).toFixed(2));
+      scene.style.setProperty("--glass-film-opacity", (screenAccumulation * (html.getAttribute("data-weather") === "storm" ? .44 : .32)).toFixed(3));
+    }, 1000);
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") {
+        updateOrbAndLight();
+        if (weatherState.source === "live") fetchLiveWeather();
+      }
+    });
 
     cloudTimer = window.setInterval(function () {
       updateOrbAndLight();
+      updateSnowCover(manualMode === "auto" ? (weatherState.source === "live" ? modeFromLiveWeather() : chooseFallbackWeather()) : manualMode);
       if (manualMode === "auto" && weatherState.source === "simulado") syncThemeLighting();
       else applyLightAndWeather(manualMode === "auto" ? modeFromLiveWeather() : manualMode);
-    }, 30000);
+    }, 5000);
 
     weatherRefreshTimer = window.setInterval(function () {
       if (weatherState.source === "live") fetchLiveWeather();
-    }, 180000);
+    }, 120000);
 
     window.addEventListener("beforeunload", function () {
       if (locationWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId);

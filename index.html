@@ -80,7 +80,14 @@
       <div class="scene__orb"></div>
       <div class="scene__haze"></div>
       <div class="scene__weather-haze"></div>
+      <div class="scene__heat-shimmer" id="sceneHeatShimmer"></div>
+      <div class="scene__arid-ground" id="sceneAridGround"></div>
+      <div class="scene__rain scene__rain--far" id="sceneRainFar"></div>
       <div class="scene__rain" id="sceneRain"></div>
+      <div class="scene__rain scene__rain--near" id="sceneRainNear"></div>
+      <div class="scene__snow-ground" id="sceneSnowGround"></div>
+      <div class="scene__splashes" id="sceneSplashes"></div>
+      <div class="scene__glass-drops" id="sceneGlassDrops"></div>
       <div class="scene__dry-dust" id="sceneDryDust"></div>
       <div class="scene__lightning" id="sceneLightning"></div>
 
@@ -154,6 +161,7 @@
               <option value="clear">Céu limpo</option>
               <option value="cloudy">Nublado</option>
               <option value="rain">Chuva</option>
+              <option value="snow">Neve</option>
               <option value="storm">Tempestade</option>
               <option value="drought">Seca</option>
             </select>
@@ -163,38 +171,6 @@
           </div>
         </div>
 
-        <div class="theme-toggle-wrap">
-          <button
-            id="themeToggle"
-            class="theme-toggle"
-            type="button"
-            role="switch"
-            aria-checked="false"
-            aria-label="Alternar entre tema escuro e claro"
-          >
-            <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path
-                fill="currentColor"
-                d="M20.4 14.9c-1.6.9-3.4 1.3-5.3.9-2.7-.5-4.9-2.4-5.8-4.9-.6-1.7-.6-3.5 0-5.1.3-.8-.5-1.6-1.3-1.2C4.4 6.3 2.5 9.9 3.1 13.7c.6 4 3.9 7.2 7.9 7.8 4.3.6 8.2-1.7 9.9-5.4.4-.8-.4-1.6-1.2-1.2z"
-              />
-            </svg>
-            <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="4.4" fill="currentColor" />
-              <g stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                <line x1="12" y1="1.6" x2="12" y2="4" />
-                <line x1="12" y1="20" x2="12" y2="22.4" />
-                <line x1="1.6" y1="12" x2="4" y2="12" />
-                <line x1="20" y1="12" x2="22.4" y2="12" />
-                <line x1="4.5" y1="4.5" x2="6.2" y2="6.2" />
-                <line x1="17.8" y1="17.8" x2="19.5" y2="19.5" />
-                <line x1="4.5" y1="19.5" x2="6.2" y2="17.8" />
-                <line x1="17.8" y1="6.2" x2="19.5" y2="4.5" />
-              </g>
-            </svg>
-            <span class="toggle-knob"></span>
-          </button>
-          <span class="toggle-label">Tema</span>
-        </div>
       </header>
 
       <main>

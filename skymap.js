@@ -49,8 +49,8 @@
     GYRO_SENS_EL: 0.55, /* sensibilidade: graus de beta  → graus de elevação */
     MOUSE_SENS:   0.40, /* sensibilidade do arrastar de mouse */
     LERP_AZ:      0.07, /* suavização exponencial do azimute */
-    LERP_EL:      0.07,
-    LERP_PAR:     0.10, /* suavização do paralaxe HTML */
+    LERP_EL:      0.10,
+    LERP_PAR:     0.15, /* paralaxe responsiva sem perder suavidade */
     STAR_COUNT:   480,
     TERRAIN_SEED: 42
   };
@@ -65,11 +65,20 @@
 
     var ctx = canvas.getContext("2d");
     var W = 0, H = 0;
+    var zoom = 1;
+    var fovH = CFG.FOV_H;
+    var fovV = CFG.FOV_V;
 
     /* --- Resize ------------------------------------------------------------ */
     function resize() {
-      W = canvas.width  = window.innerWidth;
-      H = canvas.height = window.innerHeight;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      var dpr = Math.min(window.devicePixelRatio || 1, 3);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       buildTerrain();   /* recalcular geometria do terreno */
     }
     window.addEventListener("resize", resize, { passive: true });
@@ -201,20 +210,20 @@
     function project(worldAz, worldEl) {
       var dAz = angleDiff(worldAz, az);
       var dEl = worldEl - el;
-      var pxX = W / 2 + (dAz / CFG.FOV_H) * W;
-      var pxY = H / 2 - (dEl / CFG.FOV_V) * H;
+      var pxX = W / 2 + (dAz / fovH) * W;
+      var pxY = H / 2 - (dEl / fovV) * H;
       return { x: pxX, y: pxY };
     }
 
     /* Verifica se um azimute está dentro do campo de visão horizontal */
     function inFOV(worldAz, margin) {
       margin = margin || 0;
-      return Math.abs(angleDiff(worldAz, az)) < CFG.FOV_H / 2 + margin;
+      return Math.abs(angleDiff(worldAz, az)) < fovH / 2 + margin;
     }
 
     /* Largura em pixels de um arco angular */
     function arcPx(angleDeg) {
-      return (angleDeg / CFG.FOV_H) * W;
+      return (angleDeg / fovH) * W;
     }
 
     /* -----------------------------------------------------------------------
@@ -292,7 +301,7 @@
         if (!inFOV(s.az, 10)) return;
         /* Só estrelas acima do horizonte (com margem de 5°) */
         var dEl = s.elev - el;
-        if (dEl < -CFG.FOV_V / 2 - 4 || dEl > CFG.FOV_V / 2 + 4) return;
+        if (dEl < -fovV / 2 - 4 || dEl > fovV / 2 + 4) return;
 
         var pt = project(s.az, s.elev);
         if (pt.x < -8 || pt.x > W + 8 || pt.y < -8) return;
@@ -332,7 +341,7 @@
        ----------------------------------------------------------------------- */
     function getGroundFrac() {
       /* Horizonte na tela: quando el=0, está em H/2; sobe com elevação +. */
-      return 0.5 + el / CFG.FOV_V;
+      return 0.5 + el / fovV;
     }
 
     /* -----------------------------------------------------------------------
@@ -473,7 +482,7 @@
     /* Converte azimute do mundo diretamente em X (sem elevar) */
     function worldToX(worldAz) {
       var dAz = angleDiff(worldAz, az);
-      return W/2 + (dAz / CFG.FOV_H) * W;
+      return W/2 + (dAz / fovH) * W;
     }
 
     /* -----------------------------------------------------------------------
@@ -529,6 +538,8 @@
       /* Escrever variáveis CSS de paralaxe para as camadas HTML */
       document.documentElement.style.setProperty("--gyro-x", parX.toFixed(2) + "px");
       document.documentElement.style.setProperty("--gyro-y", parY.toFixed(2) + "px");
+      document.documentElement.style.setProperty("--scene-zoom", zoom.toFixed(2));
+      document.documentElement.style.setProperty("--scene-image-size", (125 * zoom).toFixed(0) + "%");
 
       var t = now * 0.001;   /* tempo em segundos */
       var p = getPalette();
@@ -564,9 +575,11 @@
       var dB = b - baseB;   /* delta beta  (frente/trás) */
       var dG = g - baseG;   /* delta gamma (esq/dir)     */
 
-      /* Azimute: inclinação lateral */
-      rawAz = 180 + dG * CFG.GYRO_SENS_AZ;
-      rawAz = ((rawAz % 360) + 360) % 360;
+      /* Priorizar bússola absoluta; usar a inclinação como fallback. */
+      var heading = typeof evt.webkitCompassHeading === "number" ? evt.webkitCompassHeading :
+        (evt.absolute && typeof evt.alpha === "number" ? 360 - evt.alpha : null);
+      if (heading !== null && isFinite(heading)) rawAz = ((heading % 360) + 360) % 360;
+      else rawAz = ((180 + dG * CFG.GYRO_SENS_AZ) % 360 + 360) % 360;
 
       /* Elevação: inclinação frente/trás (invertida: frente=cima) */
       rawEl = Math.max(-45, Math.min(45, dB * -CFG.GYRO_SENS_EL));
@@ -589,13 +602,14 @@
       if (typeof DeviceOrientationEvent.requestPermission === "function") {
         document.addEventListener("touchend", function ask() {
           document.removeEventListener("touchend", ask);
-          DeviceOrientationEvent.requestPermission()
-            .then(function (s) {
-              if (s === "granted") {
-                window.addEventListener("deviceorientation", onOrientation, { passive: true });
-              }
-            })
-            .catch(function () {});
+          var orientationAccess = DeviceOrientationEvent.requestPermission();
+          var motionAccess = typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function"
+            ? DeviceMotionEvent.requestPermission()
+            : Promise.resolve("granted");
+          orientationAccess.then(function (s) {
+            if (s === "granted") window.addEventListener("deviceorientation", onOrientation, { passive: true });
+          }).catch(function () {});
+          motionAccess.catch(function () {});
         }, { once: true });
       } else {
         window.addEventListener("deviceorientation", onOrientation, { passive: true });
@@ -622,7 +636,6 @@
     }
 
     function onMouseMove(e) {
-      if (hasGyro) return;
       if (!dragging) {
         /* Movimento leve sem arrastar: paralaxe suave */
         var cx = window.innerWidth  / 2;
@@ -644,8 +657,8 @@
     }
 
     function onWheel(e) {
-      if (hasGyro) return;
-      rawEl = Math.max(-45, Math.min(45, rawEl - e.deltaY * 0.05));
+      if (e.shiftKey) rawEl = Math.max(-45, Math.min(45, rawEl - e.deltaY * 0.05));
+      else { zoom = Math.max(0.8, Math.min(2.2, zoom + (e.deltaY < 0 ? 0.08 : -0.08))); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     }
 
     var skyCnv = canvas;
@@ -662,16 +675,30 @@
     var touchEl0   = 0;
     var touchStartX= 0;
     var touchStartY= 0;
+    var pinchStart = 0;
+    var pinchZoom = 1;
 
     skyCnv.addEventListener("touchstart", function (e) {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchAz0    = rawAz;
       touchEl0    = rawEl;
+      if (e.touches.length > 1) {
+        var sx = e.touches[0].clientX - e.touches[1].clientX;
+        var sy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchStart = Math.sqrt(sx * sx + sy * sy);
+        pinchZoom = zoom;
+      }
     }, { passive: true });
 
     skyCnv.addEventListener("touchmove", function (e) {
-      if (hasGyro) return;
+      if (e.touches.length > 1) {
+        var px = e.touches[0].clientX - e.touches[1].clientX;
+        var py = e.touches[0].clientY - e.touches[1].clientY;
+        var pinchNow = Math.sqrt(px * px + py * py);
+        if (pinchStart > 0) { zoom = Math.max(0.8, Math.min(2.2, pinchZoom * pinchNow / pinchStart)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+        return;
+      }
       var dx = e.touches[0].clientX - touchStartX;
       var dy = e.touches[0].clientY - touchStartY;
       rawAz = ((touchAz0 - dx * CFG.MOUSE_SENS * 1.4) % 360 + 360) % 360;
@@ -687,7 +714,9 @@
       if (e.key === "ArrowRight") { rawAz = ((rawAz + step) % 360 + 360) % 360; }
       if (e.key === "ArrowUp")    { rawEl = Math.min(45, rawEl + step * 0.5); }
       if (e.key === "ArrowDown")  { rawEl = Math.max(-45, rawEl - step * 0.5); }
-      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; baseB = null; baseG = null; }
+      if (e.key === "+" || e.key === "=") { zoom = Math.min(2.2, zoom + 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      if (e.key === "-") { zoom = Math.max(0.8, zoom - 0.1); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
+      if (e.key === "r" || e.key === "R") { rawAz = 180; rawEl = 0; zoom = 1; fovH = CFG.FOV_H; fovV = CFG.FOV_V; baseB = null; baseG = null; }
     });
 
     /* -----------------------------------------------------------------------
@@ -698,7 +727,9 @@
       getElevation: function () { return el; },
       setAzimuth:   function (a) { rawAz = ((a % 360) + 360) % 360; },
       setElevation: function (e) { rawEl = Math.max(-45, Math.min(45, e)); },
-      recenter:     function () { rawAz = 180; rawEl = 0; }
+      recenter:     function () { rawAz = 180; rawEl = 0; zoom = 1; fovH = CFG.FOV_H; fovV = CFG.FOV_V; },
+      getZoom:      function () { return zoom; },
+      setZoom:      function (value) { zoom = Math.max(0.8, Math.min(2.2, Number(value) || 1)); fovH = CFG.FOV_H / zoom; fovV = CFG.FOV_V / zoom; }
     };
   }
 
