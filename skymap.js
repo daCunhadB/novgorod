@@ -671,7 +671,7 @@
 
       if (baseB === null) { baseB = b; baseG = g; }
 
-      var dB = b - baseB;   /* delta beta  (frente/trás) */
+      var dB = angleDiff(b, baseB); /* delta beta (frente/trás), sem salto angular */
       var dG = g - baseG;   /* delta gamma (esq/dir)     */
 
       /* Priorizar bússola absoluta; usar a inclinação como fallback. */
@@ -680,13 +680,15 @@
       if (heading !== null && isFinite(heading)) rawAz = ((heading % 360) + 360) % 360;
       else rawAz = ((172.8 + dG * CFG.GYRO_SENS_AZ) % 360 + 360) % 360;
 
-      /* Elevação: inclinação frente/trás (invertida: frente=cima) */
-      rawEl = Math.max(-85, Math.min(85, dB * -CFG.GYRO_SENS_EL));
+      /* Elevação: seguir a inclinação da tela de forma natural.
+         Com a tela voltada para cima (aparelho apoiado na mesa), inclinar
+         a frente para baixo deve baixar a vista, e não elevá-la. */
+      rawEl = Math.max(-85, Math.min(85, dB * CFG.GYRO_SENS_EL));
 
       /* Paralaxe das camadas HTML */
       var norm = CFG.PARALLAX_MAX;
       rawParX = -dG / 45 * norm;
-      rawParY = -dB / 45 * norm * 0.6;
+      rawParY = dB / 45 * norm * 0.6;
 
       if (!hasGyro) {
         hasGyro = true;

@@ -514,6 +514,7 @@ body {
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  background-color: var(--weather-edge-color, #0b1226);
 
   /* Controles da cena — o JS escreve --wind e --scroll-y */
   --wind: 1;
@@ -2387,7 +2388,10 @@ button:focus-visible {
 }
 
 /* A variável atmosférica tem precedência sobre a paleta fixa de tema. */
-body { background: var(--weather-body-bg, var(--body-bg)); }
+body {
+  background: var(--weather-body-bg, var(--body-bg));
+  background-color: var(--weather-edge-color, #0b1226);
+}
 
 
 /* -------------------------------------------------------------------------

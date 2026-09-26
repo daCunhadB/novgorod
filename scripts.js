@@ -536,6 +536,14 @@
         "radial-gradient(ellipse at 77% 10%, " + (isDay ? "rgba(255,238,180,.30)" : "rgba(110,140,210,.16)") + ", transparent 58%)," +
         "linear-gradient(180deg," + base.sky1 + " 0%," + base.sky2 + " 34%," + base.sky3 + " 67%," + base.ground + " 100%)"
       );
+      /* Safari/iOS paints its browser chrome from theme-color, while overscroll
+         and safe-area gaps expose the root canvas color. Keep both atmospheric. */
+      var edgeColor = base.sky3 || base.sky2 || base.sky1;
+      document.documentElement.style.setProperty("--weather-edge-color", edgeColor);
+      var browserThemeMeta = document.querySelector('meta[name="theme-color"]');
+      if (browserThemeMeta && browserThemeMeta.getAttribute("content") !== edgeColor) {
+        browserThemeMeta.setAttribute("content", edgeColor);
+      }
       document.documentElement.style.setProperty("--weather-overlay", overlay);
       document.documentElement.style.setProperty("--weather-ground", base.ground);
     }
@@ -933,7 +941,8 @@
       themeToggle.setAttribute("aria-checked", String(isLight));
     }
     if (themeColorMeta) {
-      themeColorMeta.setAttribute("content", isLight ? "#6ba3d6" : "#0b1226");
+      var atmosphericEdge = getComputedStyle(html).getPropertyValue("--weather-edge-color").trim();
+      themeColorMeta.setAttribute("content", atmosphericEdge || (isLight ? "#6ba3d6" : "#0b1226"));
     }
     var avatar = isLight ? AVATAR_LIGHT : AVATAR_DARK;
     if (avatarImg) {
