@@ -253,14 +253,14 @@
         isDay:    isDay,
         skyTop:   isDay
           ? (isStorm ? [20,25,40]   : isRain  ? [55,72,95]    : isCloudy ? [75,100,130] : isDrought ? [80,110,160] : [45,98,180])
-          : [4,7,18],
+          : (isStorm ? [14,9,27] : isRain ? [3,11,24] : isCloudy ? [9,18,38] : [4,7,18]),
         skyHorizon: isDay
           ? (isStorm ? [35,38,52]   : isRain  ? [88,100,120]  : isCloudy ? [140,155,170]: isDrought ? [170,155,110]: [135,185,230])
-          : [15,22,45],
-        skyHazeColor: isDay ? [210,228,248] : [22,28,55],
+          : (isStorm ? [45,24,63] : isRain ? [20,33,56] : isCloudy ? [24,38,67] : [15,22,45]),
+        skyHazeColor: isDay ? [210,228,248] : (isStorm ? [74,43,93] : isRain ? [30,45,71] : [22,28,55]),
         groundBase: isDay
           ? (isDrought ? [148,126,75] : isRain ? [62,70,65]  : [88,96,70])
-          : [20,16,10],
+          : (isStorm ? [12,7,20] : isRain ? [12,18,24] : isDrought ? [55,39,20] : [20,16,10]),
         waterColor: isDay ? [50,85,138] : [14,22,44],
         treeColor:  isDay ? [30,54,22]  : [10,18,6],
         treeDark:   isDay ? [18,36,14]  : [5,10,3],
@@ -316,9 +316,10 @@
       var sb = Math.min(ih, sourceTop + sourceH);
       var palette = getPalette();
       var base = ctx.createLinearGradient(0, 0, 0, H);
-      base.addColorStop(0, palette.isDay ? "#6ba6d4" : "#071023");
-      base.addColorStop(.52, palette.isDay ? "#bed8e8" : "#23304b");
-      base.addColorStop(1, palette.isDay ? "#6d705e" : "#171b26");
+      base.addColorStop(0, rgbStr(palette.skyTop));
+      base.addColorStop(.52, rgbStr(palette.skyHorizon));
+      base.addColorStop(.78, rgbStr(lerpC(palette.skyHorizon, palette.skyHazeColor, .48)));
+      base.addColorStop(1, rgbStr(palette.groundBase));
       if (paintUnderlay !== false) {
         ctx.fillStyle = base;
         ctx.fillRect(0, 0, W, H);
@@ -336,7 +337,15 @@
         var chunk = Math.min(remaining, iw - left);
         var dx = consumed * scaleX;
         var dw = chunk * scaleX + .5;
+        /* A equiretangular wrap não possui linha de corte nos polos: prolonga
+           a última fileira da imagem até o limite do campo de visão. Isso
+           evita faixas do preenchimento atmosférico aparecerem quando a
+           câmera olha para o zênite ou para o nadir. O tema/clima continua
+           aplicado ao canvas completo e às camadas atmosféricas sobrepostas. */
+        if (destY > 0) ctx.drawImage(image, left, 0, chunk, 1, dx, 0, dw, destY);
         ctx.drawImage(image, left, sy, chunk, sb - sy, dx, destY, dw, destH);
+        var bottomY = destY + destH;
+        if (bottomY < H) ctx.drawImage(image, left, ih - 1, chunk, 1, dx, bottomY, dw, H - bottomY);
         consumed += chunk;
         remaining -= chunk;
         left = 0;

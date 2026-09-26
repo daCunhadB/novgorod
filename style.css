@@ -2772,6 +2772,7 @@ html[data-weather="storm"] .scene__glass-drops { opacity: var(--rain-glass-opaci
   transform: translate3d(var(--glass-pos-x, 0px), var(--glass-pos-y, 0px), 0);
   opacity: var(--glass-drop-opacity, .42);
   transition: transform var(--glass-drop-duration, 8s) cubic-bezier(.18,.72,.26,1), opacity 1.5s ease;
+  animation: glass-run var(--glass-drop-duration, 8s) ease-in var(--drop-delay, 0s) infinite;
 }
 .scene__glass-drops i::before {
   content: ""; position: absolute; left: 17%; top: 12%; width: 34%; height: 38%;
@@ -2835,6 +2836,7 @@ html[data-weather="storm"] .scene__glass-drops i {
   filter: blur(8px); transition: opacity .8s ease;
 }
 html[data-screen-face="up"] .scene__glass-drops i { animation-timing-function: ease-in-out; }
+html[data-glass-resting="true"] .scene__glass-drops i { animation-play-state: paused; }
 html[data-screen-face="down"] .scene__glass-drops i { animation-iteration-count: 1; }
 @media (prefers-reduced-motion: reduce) {
   html[data-screen-face="down"] .scene__glass-drops i { animation: none; }
@@ -2844,6 +2846,7 @@ html[data-screen-face="down"] .scene__glass-drops i { animation-iteration-count:
 .scene__splashes {
   position: absolute; inset: 0; z-index: 10; overflow: hidden;
   pointer-events: none; opacity: 0;
+  clip-path: inset(var(--sky-h, 50%) 0 0 0);
   transition: opacity .8s ease;
 }
 html[data-weather="rain"] .scene__splashes,
